@@ -4,6 +4,7 @@
 #pragma once
 
 #include <vk_types.h>
+#include <vk_initializers.h>
 
 class VulkanEngine {
 public:
@@ -28,4 +29,17 @@ public:
 
 	//run main loop
 	void run();
+
+public:
+	VkInstance _instance;
+	VkDebugUtilsMessengerEXT _debug_messager; // Vulkan debug output handle
+	VkPhysicalDevice _chosenGPU;
+	VkDevice _device;
+	VkSurfaceKHR _surface;
+
+private:
+	void init_vulkan();
+	void init_swapchain();
+	void init_commands();
+	void init_sync_structures();
 };

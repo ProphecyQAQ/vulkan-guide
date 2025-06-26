@@ -32,8 +32,33 @@ void VulkanEngine::init()
         _windowExtent.height,
         window_flags);
 
+    init_vulkan();
+
+    init_swapchain();
+
+    init_commands();
+
+    init_sync_structures();
+
     // everything went fine
     _isInitialized = true;
+}
+
+void VulkanEngine::init_vulkan()
+{
+    //nothing yet
+}
+void VulkanEngine::init_swapchain()
+{
+    //nothing yet
+}
+void VulkanEngine::init_commands()
+{
+    //nothing yet
+}
+void VulkanEngine::init_sync_structures()
+{
+    //nothing yet
 }
 
 void VulkanEngine::cleanup()
