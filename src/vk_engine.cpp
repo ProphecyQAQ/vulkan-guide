@@ -46,7 +46,48 @@ void VulkanEngine::init()
 
 void VulkanEngine::init_vulkan()
 {
-    //nothing yet
+    // create application info, not necessary
+    VkApplicationInfo appInfo{};
+    appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+    appInfo.pApplicationName = "Vulkan Application";
+    appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+    appInfo.pEngineName = "No Engine";
+    appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+    appInfo.apiVersion = VK_API_VERSION_1_3;
+
+    // create vkinstance create info
+    VkInstanceCreateInfo instanceInfo{};
+    instanceInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    instanceInfo.pApplicationInfo = &appInfo;
+    instanceInfo.enabledLayerCount = 0;
+
+    // get extension to interface with window
+    unsigned int sdlExtensionCount = 0;
+    std::vector<const char*> sdlExtensions;
+
+    if (SDL_Vulkan_GetInstanceExtensions(_window, &sdlExtensionCount, nullptr) == false)
+    {
+        fmt::println("[VulkanEngine] [init_vulkan] get instance extestions failed");
+        return;
+    }
+
+    sdlExtensions.resize(sdlExtensionCount);
+    if (SDL_Vulkan_GetInstanceExtensions(_window, &sdlExtensionCount, sdlExtensions.data()) == false)
+    {
+        fmt::println("[VulkanEngine] [init_vulkan] get instance extestions failed");
+        return;
+    }
+
+    for (unsigned int i = 0; i < sdlExtensionCount; i ++)
+    {
+        fmt::println("SDL Extension: {}", sdlExtensions[i]);
+    }
+
+    // create vkinstance
+    if (vkCreateInstance(&instanceInfo, nullptr, &_instance) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to create instance!");
+    }
 }
 void VulkanEngine::init_swapchain()
 {
@@ -67,6 +108,8 @@ void VulkanEngine::cleanup()
 
         SDL_DestroyWindow(_window);
     }
+
+    vkDestroyInstance(_instance, nullptr);
 
     // clear engine pointer
     loadedEngine = nullptr;
