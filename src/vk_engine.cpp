@@ -196,6 +196,42 @@ void VulkanEngine::init_vulkan()
     {
         std::runtime_error("[VulkanEngine] [init_valkan] no graphics queue family");
     }
+
+    // set up a logical device
+
+    // create queue info
+    VkDeviceQueueCreateInfo queueCreateInfo{};
+    queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    queueCreateInfo.queueCount = 1;
+    queueCreateInfo.queueFamilyIndex = indices.graphicsFamily.value();
+    float queuePriority = 1.0f;
+    queueCreateInfo.pQueuePriorities = &queuePriority;
+
+    // Specifying used device features
+    VkPhysicalDeviceFeatures deviceFeatures{};
+
+    // create logical device
+    VkDeviceCreateInfo deviceCreateInfo{};
+    deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    deviceCreateInfo.queueCreateInfoCount = 1;
+    deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
+    deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
+
+    deviceCreateInfo.enabledExtensionCount = 0;
+    if (check_validation_support()) 
+    {
+        instanceInfo.enabledLayerCount = static_cast<uint32_t>(validationLayer.size());
+        instanceInfo.ppEnabledLayerNames = validationLayer.data();
+    }
+    else 
+    {
+        instanceInfo.enabledLayerCount = 0;
+    }
+
+    if (vkCreateDevice(_chosenGPU, &deviceCreateInfo, nullptr, &_device) != VK_SUCCESS)
+    {
+        throw std::runtime_error("[VulkanEngine] [init_valkan] failed to create logical device!");
+    }
 }
 void VulkanEngine::init_swapchain()
 {
@@ -217,6 +253,7 @@ void VulkanEngine::cleanup()
         SDL_DestroyWindow(_window);
     }
 
+    vkDestroyDevice(_device, nullptr);
     vkDestroyInstance(_instance, nullptr);
 
     // clear engine pointer

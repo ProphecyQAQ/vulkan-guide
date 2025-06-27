@@ -36,6 +36,7 @@ public:
 	VkDebugUtilsMessengerEXT _debug_messager; // Vulkan debug output handle
 	VkPhysicalDevice _chosenGPU;
 	VkDevice _device;
+	VkQueue graphicsQueue;
 	VkSurfaceKHR _surface;
 
 	std::vector<const char*> validationLayer;
