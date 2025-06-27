@@ -168,7 +168,8 @@ void VulkanEngine::init_vulkan()
         throw std::runtime_error("[VulkanEngine] [init_valkan] no chosenGPU");
     }
 
-    // set up a logical device
+    // create queue family
+    std::vector<VkQueueFamilyProperties> queueFamilyProperties = VulkanHeaplerLibrary::get_queue_family(_chosenGPU);
 
 }
 void VulkanEngine::init_swapchain()

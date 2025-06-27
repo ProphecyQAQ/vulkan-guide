@@ -9,10 +9,23 @@ std::vector<VkPhysicalDevice> VulkanHeaplerLibrary::get_physical_devices(VkInsta
     vkEnumeratePhysicalDevices(instance, &deviceCount, physicalDevices.data());
 
     if (deviceCount == 0) {
-        throw std::runtime_error("[VulkanHealper] [GetPhysicalDevices] failed to find GPUs with Vulkan support!");
+        throw std::runtime_error("[VulkanHealper] [get_physical_devices] failed to find GPUs with Vulkan support!");
     }
 
-    fmt::println("[VulkanHealper] [GetPhysicalDevices] physical device num {}", physicalDevices.size());
+    fmt::println("[VulkanHealper] [get_physical_devices] physical device num {}", physicalDevices.size());
 
     return physicalDevices;
+}
+
+std::vector<VkQueueFamilyProperties> VulkanHeaplerLibrary::get_queue_family(VkPhysicalDevice physicalDevice)
+{
+    uint32_t queueFamilyCount = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
+
+    std::vector<VkQueueFamilyProperties> queueFamilyProperties(queueFamilyCount);
+    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilyProperties.data());
+
+    fmt::println("[VulkanHealper] [get_queue_family]] queue family num {}", queueFamilyProperties.size());
+
+    return queueFamilyProperties;
 }
