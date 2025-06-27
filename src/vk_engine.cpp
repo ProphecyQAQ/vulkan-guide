@@ -9,6 +9,7 @@
 
 #include <chrono>
 #include <thread>
+#include <cstring>
 
 VulkanEngine* loadedEngine = nullptr;
 
@@ -32,6 +33,8 @@ void VulkanEngine::init()
         _windowExtent.height,
         window_flags);
 
+    validationLayer.push_back("VK_LAYER_KHRONOS_validation");
+
     init_vulkan();
 
     init_swapchain();
@@ -42,6 +45,38 @@ void VulkanEngine::init()
 
     // everything went fine
     _isInitialized = true;
+}
+
+bool VulkanEngine::check_validation_support()
+{
+    // get supported validation layer properties
+    uint32_t layerCount;
+    vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+
+    std::vector<VkLayerProperties> availableLayers(layerCount);
+    vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+
+
+    // check support
+    for (const char *layerName : validationLayer)
+    {
+        bool isFound = false;
+        for (const auto &layerProperties : availableLayers)
+        {
+            if ( strcmp(layerProperties.layerName, layerName) == 0 )
+            {
+                isFound = true;
+                break;
+            }
+        }
+
+        if (!isFound) 
+        {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 void VulkanEngine::init_vulkan()
@@ -59,7 +94,17 @@ void VulkanEngine::init_vulkan()
     VkInstanceCreateInfo instanceInfo{};
     instanceInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     instanceInfo.pApplicationInfo = &appInfo;
-    instanceInfo.enabledLayerCount = 0;
+
+    // create validation info
+    if (check_validation_support()) 
+    {
+        instanceInfo.enabledLayerCount = static_cast<uint32_t>(validationLayer.size());
+        instanceInfo.ppEnabledLayerNames = validationLayer.data();
+    }
+    else 
+    {
+        instanceInfo.enabledLayerCount = 0;
+    }
 
     // get extension to interface with window
     unsigned int sdlExtensionCount = 0;

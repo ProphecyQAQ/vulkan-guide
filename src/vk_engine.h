@@ -37,9 +37,13 @@ public:
 	VkDevice _device;
 	VkSurfaceKHR _surface;
 
+	std::vector<const char*> validationLayer;
+
 private:
 	void init_vulkan();
 	void init_swapchain();
 	void init_commands();
 	void init_sync_structures();
+
+	bool check_validation_support();
 };
