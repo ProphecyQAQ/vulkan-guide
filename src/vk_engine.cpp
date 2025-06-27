@@ -133,6 +133,10 @@ void VulkanEngine::init_vulkan()
     {
         throw std::runtime_error("failed to create instance!");
     }
+
+
+    // get physical device
+    std::vector<VkPhysicalDevice> physicalDevices = VulkanHeaplerLibrary::GetPhysicalDevices(_instance);
 }
 void VulkanEngine::init_swapchain()
 {

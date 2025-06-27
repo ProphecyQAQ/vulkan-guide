@@ -5,6 +5,7 @@
 
 #include <vk_types.h>
 #include <vk_initializers.h>
+#include <vk_healper.h>
 
 class VulkanEngine {
 public:
