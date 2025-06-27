@@ -47,4 +47,5 @@ private:
 	void init_sync_structures();
 
 	bool check_validation_support();
+	bool is_device_suitable(VkPhysicalDevice physicalDevice);
 };

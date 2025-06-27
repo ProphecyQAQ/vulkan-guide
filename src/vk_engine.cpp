@@ -79,6 +79,17 @@ bool VulkanEngine::check_validation_support()
     return true;
 }
 
+bool VulkanEngine::is_device_suitable(VkPhysicalDevice physicalDevice)
+{
+    VkPhysicalDeviceProperties deviceProperties;
+    vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
+
+    VkPhysicalDeviceFeatures deviceFeatures;
+    vkGetPhysicalDeviceFeatures(physicalDevice, &deviceFeatures);
+
+    return deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && deviceFeatures.geometryShader;
+}
+
 void VulkanEngine::init_vulkan()
 {
     // create application info, not necessary
@@ -125,7 +136,7 @@ void VulkanEngine::init_vulkan()
 
     for (unsigned int i = 0; i < sdlExtensionCount; i ++)
     {
-        fmt::println("SDL Extension: {}", sdlExtensions[i]);
+        fmt::println("[VulkanEngine] [init_valkan] SDL Extension: {}", sdlExtensions[i]);
     }
 
     // create vkinstance
@@ -137,6 +148,25 @@ void VulkanEngine::init_vulkan()
 
     // get physical device
     std::vector<VkPhysicalDevice> physicalDevices = VulkanHeaplerLibrary::GetPhysicalDevices(_instance);
+    for (const auto& physicalDevice : physicalDevices)
+    {
+        if (is_device_suitable(physicalDevice))
+        {
+            _chosenGPU = physicalDevice;
+            break;
+        }
+    }
+
+    if (_chosenGPU != VK_NULL_HANDLE)
+    {
+        VkPhysicalDeviceProperties chosenGPUProperties;
+        vkGetPhysicalDeviceProperties(_chosenGPU, &chosenGPUProperties);
+        fmt::println("[VulkanEngine] [init_valkan] chosen GPU {}", chosenGPUProperties.deviceName);
+    }
+    else 
+    {
+        throw std::runtime_error("[VulkanEngine] [init_valkan] no chosenGPU");
+    }
 }
 void VulkanEngine::init_swapchain()
 {
