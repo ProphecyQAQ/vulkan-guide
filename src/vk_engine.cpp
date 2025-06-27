@@ -90,6 +90,15 @@ bool VulkanEngine::is_device_suitable(VkPhysicalDevice physicalDevice)
     return deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && deviceFeatures.geometryShader;
 }
 
+bool VulkanEngine::is_queue_family_suitable(VkQueueFamilyProperties queueFamilyProperty)
+{
+    if (queueFamilyProperty.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+    {
+        return true;
+    }
+    return false;
+}
+
 void VulkanEngine::init_vulkan()
 {
     // create application info, not necessary
@@ -170,7 +179,23 @@ void VulkanEngine::init_vulkan()
 
     // create queue family
     std::vector<VkQueueFamilyProperties> queueFamilyProperties = VulkanHeaplerLibrary::get_queue_family(_chosenGPU);
-
+    QueueFamilyIndices indices;
+    for (int i = 0; i < queueFamilyProperties.size(); i ++)
+    {
+        if (is_queue_family_suitable(queueFamilyProperties[i]))
+        {
+            indices.graphicsFamily = i;
+            break;
+        }
+    }
+    if (indices.is_complete())
+    {
+        fmt::println("[VulkanEngine] [init_valkan] find graphics queue family {}", indices.graphicsFamily.value());
+    }
+    else 
+    {
+        std::runtime_error("[VulkanEngine] [init_valkan] no graphics queue family");
+    }
 }
 void VulkanEngine::init_swapchain()
 {

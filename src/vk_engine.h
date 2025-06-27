@@ -48,4 +48,5 @@ private:
 
 	bool check_validation_support();
 	bool is_device_suitable(VkPhysicalDevice physicalDevice);
+	bool is_queue_family_suitable(VkQueueFamilyProperties queueFamilyProperty);
 };

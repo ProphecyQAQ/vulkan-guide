@@ -34,4 +34,8 @@
 struct QueueFamilyIndices 
 {
     std::optional<uint32_t> graphicsFamily;
+
+    bool is_complete(){
+        return graphicsFamily.has_value();
+    }
 };
