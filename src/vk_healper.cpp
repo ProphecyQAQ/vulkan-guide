@@ -1,6 +1,6 @@
 #include <vk_healper.h>
 
-std::vector<VkPhysicalDevice> VulkanHeaplerLibrary::GetPhysicalDevices(VkInstance instance)
+std::vector<VkPhysicalDevice> VulkanHeaplerLibrary::get_physical_devices(VkInstance instance)
 {
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);

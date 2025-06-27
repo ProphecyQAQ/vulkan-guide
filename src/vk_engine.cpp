@@ -147,7 +147,7 @@ void VulkanEngine::init_vulkan()
 
 
     // get physical device
-    std::vector<VkPhysicalDevice> physicalDevices = VulkanHeaplerLibrary::GetPhysicalDevices(_instance);
+    std::vector<VkPhysicalDevice> physicalDevices = VulkanHeaplerLibrary::get_physical_devices(_instance);
     for (const auto& physicalDevice : physicalDevices)
     {
         if (is_device_suitable(physicalDevice))
@@ -167,6 +167,9 @@ void VulkanEngine::init_vulkan()
     {
         throw std::runtime_error("[VulkanEngine] [init_valkan] no chosenGPU");
     }
+
+    // set up a logical device
+
 }
 void VulkanEngine::init_swapchain()
 {

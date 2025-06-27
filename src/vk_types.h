@@ -30,3 +30,8 @@
             abort();                                                    \
         }                                                               \
     } while (0)
+
+struct QueueFamilyIndices 
+{
+    std::optional<uint32_t> graphicsFamily;
+};
