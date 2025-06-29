@@ -32,14 +32,17 @@ public:
 	void run();
 
 public:
+	std::vector<const char*> validationLayer;
+
 	VkInstance _instance;
 	VkDebugUtilsMessengerEXT _debug_messager; // Vulkan debug output handle
 	VkPhysicalDevice _chosenGPU;
 	VkDevice _device;
 	VkQueue graphicsQueue;
-	VkSurfaceKHR _surface;
 
-	std::vector<const char*> validationLayer;
+	// presentation
+	VkSurfaceKHR _surface;
+	VkQueue presentQueue;
 
 private:
 	void init_vulkan();
@@ -49,5 +52,6 @@ private:
 
 	bool check_validation_support();
 	bool is_device_suitable(VkPhysicalDevice physicalDevice);
-	bool is_queue_family_suitable(VkQueueFamilyProperties queueFamilyProperty);
+	bool is_queue_family_suitable_for_graphics(VkQueueFamilyProperties queueFamilyProperty);
+	bool is_queue_family_suitable_for_presentation(VkQueueFamilyProperties queueFamilyProperty, uint32_t queueFamilyIndex);
 };

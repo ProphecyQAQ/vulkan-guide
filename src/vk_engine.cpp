@@ -90,9 +90,20 @@ bool VulkanEngine::is_device_suitable(VkPhysicalDevice physicalDevice)
     return deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && deviceFeatures.geometryShader;
 }
 
-bool VulkanEngine::is_queue_family_suitable(VkQueueFamilyProperties queueFamilyProperty)
+bool VulkanEngine::is_queue_family_suitable_for_graphics(VkQueueFamilyProperties queueFamilyProperty)
 {
     if (queueFamilyProperty.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+    {
+        return true;
+    }
+    return false;
+}
+
+bool VulkanEngine::is_queue_family_suitable_for_presentation(VkQueueFamilyProperties queueFamilyProperty, uint32_t queueFamilyIndex)
+{
+    VkBool32 presentationSupport = false;
+    vkGetPhysicalDeviceSurfaceSupportKHR(_chosenGPU, queueFamilyIndex, _surface, &presentationSupport);
+    if (presentationSupport)
     {
         return true;
     }
@@ -147,13 +158,14 @@ void VulkanEngine::init_vulkan()
     {
         fmt::println("[VulkanEngine] [init_valkan] SDL Extension: {}", sdlExtensions[i]);
     }
+    instanceInfo.enabledExtensionCount = sdlExtensionCount;
+    instanceInfo.ppEnabledExtensionNames = sdlExtensions.data();
 
     // create vkinstance
     if (vkCreateInstance(&instanceInfo, nullptr, &_instance) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to create instance!");
     }
-
 
     // get physical device
     std::vector<VkPhysicalDevice> physicalDevices = VulkanHeaplerLibrary::get_physical_devices(_instance);
@@ -177,24 +189,39 @@ void VulkanEngine::init_vulkan()
         throw std::runtime_error("[VulkanEngine] [init_valkan] no chosenGPU");
     }
 
+    // create surface
+    if (!SDL_Vulkan_CreateSurface(_window, _instance, &_surface))
+    {
+        fmt::println("{}", SDL_GetError());
+        throw std::runtime_error("[VulkanEngine] [init_swapchain] create surface failed");
+    }
+
     // create queue family
     std::vector<VkQueueFamilyProperties> queueFamilyProperties = VulkanHeaplerLibrary::get_queue_family(_chosenGPU);
     QueueFamilyIndices indices;
     for (int i = 0; i < queueFamilyProperties.size(); i ++)
     {
-        if (is_queue_family_suitable(queueFamilyProperties[i]))
+        if (is_queue_family_suitable_for_graphics(queueFamilyProperties[i]))
         {
             indices.graphicsFamily = i;
+        }
+        if (is_queue_family_suitable_for_presentation(queueFamilyProperties[i], i))
+        {
+            indices.presentFamily = i;
+        }
+
+        if (indices.is_complete())
+        {
             break;
         }
     }
     if (indices.is_complete())
     {
-        fmt::println("[VulkanEngine] [init_valkan] find graphics queue family {}", indices.graphicsFamily.value());
+        fmt::println("[VulkanEngine] [init_valkan] find graphics queue family {}, presentation family {}", indices.graphicsFamily.value(), indices.presentFamily.value());
     }
     else 
     {
-        std::runtime_error("[VulkanEngine] [init_valkan] no graphics queue family");
+        throw std::runtime_error("[VulkanEngine] [init_valkan] no graphics queue family");
     }
 
     // set up a logical device
@@ -220,23 +247,29 @@ void VulkanEngine::init_vulkan()
     deviceCreateInfo.enabledExtensionCount = 0;
     if (check_validation_support()) 
     {
-        instanceInfo.enabledLayerCount = static_cast<uint32_t>(validationLayer.size());
-        instanceInfo.ppEnabledLayerNames = validationLayer.data();
+        deviceCreateInfo.enabledLayerCount = static_cast<uint32_t>(validationLayer.size());
+        deviceCreateInfo.ppEnabledLayerNames = validationLayer.data();
     }
     else 
     {
-        instanceInfo.enabledLayerCount = 0;
+        deviceCreateInfo.enabledLayerCount = 0;
     }
 
     if (vkCreateDevice(_chosenGPU, &deviceCreateInfo, nullptr, &_device) != VK_SUCCESS)
     {
         throw std::runtime_error("[VulkanEngine] [init_valkan] failed to create logical device!");
     }
+
+    // Get queue handle
+    vkGetDeviceQueue(_device, indices.graphicsFamily.value(), 0, &graphicsQueue);
+    vkGetDeviceQueue(_device, indices.presentFamily.value(), 0, &presentQueue);
 }
+
 void VulkanEngine::init_swapchain()
 {
-    //nothing yet
+
 }
+
 void VulkanEngine::init_commands()
 {
     //nothing yet
@@ -254,6 +287,7 @@ void VulkanEngine::cleanup()
     }
 
     vkDestroyDevice(_device, nullptr);
+    vkDestroySurfaceKHR(_instance, _surface, nullptr);
     vkDestroyInstance(_instance, nullptr);
 
     // clear engine pointer
