@@ -8,6 +8,7 @@
 #include <vector>
 #include <span>
 #include <array>
+#include <set>
 #include <functional>
 #include <deque>
 #include <stdexcept>

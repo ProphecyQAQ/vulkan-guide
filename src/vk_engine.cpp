@@ -192,7 +192,6 @@ void VulkanEngine::init_vulkan()
     // create surface
     if (!SDL_Vulkan_CreateSurface(_window, _instance, &_surface))
     {
-        fmt::println("{}", SDL_GetError());
         throw std::runtime_error("[VulkanEngine] [init_swapchain] create surface failed");
     }
 
@@ -227,12 +226,19 @@ void VulkanEngine::init_vulkan()
     // set up a logical device
 
     // create queue info
-    VkDeviceQueueCreateInfo queueCreateInfo{};
-    queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    queueCreateInfo.queueCount = 1;
-    queueCreateInfo.queueFamilyIndex = indices.graphicsFamily.value();
+    std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily.value(), indices.presentFamily.value()};
+    std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
     float queuePriority = 1.0f;
-    queueCreateInfo.pQueuePriorities = &queuePriority;
+    for (auto queueFamilyIndex:uniqueQueueFamilies) 
+    {
+        VkDeviceQueueCreateInfo queueCreateInfo{};
+        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queueCreateInfo.queueCount = 1;
+        queueCreateInfo.queueFamilyIndex = queueFamilyIndex;
+        queueCreateInfo.pQueuePriorities = &queuePriority;
+
+        queueCreateInfos.push_back(queueCreateInfo);
+    }
 
     // Specifying used device features
     VkPhysicalDeviceFeatures deviceFeatures{};
@@ -240,8 +246,8 @@ void VulkanEngine::init_vulkan()
     // create logical device
     VkDeviceCreateInfo deviceCreateInfo{};
     deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    deviceCreateInfo.queueCreateInfoCount = 1;
-    deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
+    deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
+    deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
     deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
 
     deviceCreateInfo.enabledExtensionCount = 0;
