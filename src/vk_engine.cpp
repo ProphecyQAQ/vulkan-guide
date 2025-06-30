@@ -304,11 +304,13 @@ void VulkanEngine::init_vulkan()
 
 void VulkanEngine::init_swapchain()
 {
-    // need check:
-    // Basic surface capabilities (min/max number of images in swap chain, min/max width and height of images)
-    // Surface formats (pixel format, color space)
-    // Available presentation modes
+    // three types of settings to determine:
 
+    // Surface format (color depth)
+    // Presentation mode (conditions for "swapping" images to the screen)
+    // Swap extent (resolution of images in swap chain)
+
+    
 }
 
 void VulkanEngine::init_commands()
