@@ -32,17 +32,18 @@ public:
 	void run();
 
 public:
-	std::vector<const char*> validationLayer;
+	std::vector<const char*> _validationLayer;
+	std::vector<const char*> _deviceExtensions;
 
 	VkInstance _instance;
 	VkDebugUtilsMessengerEXT _debug_messager; // Vulkan debug output handle
 	VkPhysicalDevice _chosenGPU;
 	VkDevice _device;
-	VkQueue graphicsQueue;
+	VkQueue _graphicsQueue;
 
 	// presentation
 	VkSurfaceKHR _surface;
-	VkQueue presentQueue;
+	VkQueue _presentQueue;
 
 private:
 	void init_vulkan();

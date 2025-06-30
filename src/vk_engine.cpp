@@ -33,7 +33,8 @@ void VulkanEngine::init()
         _windowExtent.height,
         window_flags);
 
-    validationLayer.push_back("VK_LAYER_KHRONOS_validation");
+    _validationLayer.push_back("VK_LAYER_KHRONOS_validation");
+    _deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
     init_vulkan();
 
@@ -58,7 +59,7 @@ bool VulkanEngine::check_validation_support()
 
 
     // check support
-    for (const char *layerName : validationLayer)
+    for (const char *layerName : _validationLayer)
     {
         bool isFound = false;
         for (const auto &layerProperties : availableLayers)
@@ -87,7 +88,27 @@ bool VulkanEngine::is_device_suitable(VkPhysicalDevice physicalDevice)
     VkPhysicalDeviceFeatures deviceFeatures;
     vkGetPhysicalDeviceFeatures(physicalDevice, &deviceFeatures);
 
-    return deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && deviceFeatures.geometryShader;
+    // check extension support
+    uint32_t extensionCount; 
+    vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, nullptr);
+
+    std::vector<VkExtensionProperties> supportedDeviceExtensions(extensionCount);
+    vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, supportedDeviceExtensions.data());
+
+    bool extensionSupport = true;
+    for (auto neededDeviceExtension:_deviceExtensions)
+    {
+        if (std::find_if(supportedDeviceExtensions.begin(), supportedDeviceExtensions.end(), [&](VkExtensionProperties& val) 
+        {
+            return strcmp(val.extensionName, neededDeviceExtension) == 0;
+        }) == supportedDeviceExtensions.end())
+        {
+            extensionSupport = false;
+            break;
+        }
+    }
+
+    return deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && deviceFeatures.geometryShader && extensionSupport;
 }
 
 bool VulkanEngine::is_queue_family_suitable_for_graphics(VkQueueFamilyProperties queueFamilyProperty)
@@ -129,8 +150,8 @@ void VulkanEngine::init_vulkan()
     // create validation info
     if (check_validation_support()) 
     {
-        instanceInfo.enabledLayerCount = static_cast<uint32_t>(validationLayer.size());
-        instanceInfo.ppEnabledLayerNames = validationLayer.data();
+        instanceInfo.enabledLayerCount = static_cast<uint32_t>(_validationLayer.size());
+        instanceInfo.ppEnabledLayerNames = _validationLayer.data();
     }
     else 
     {
@@ -253,8 +274,8 @@ void VulkanEngine::init_vulkan()
     deviceCreateInfo.enabledExtensionCount = 0;
     if (check_validation_support()) 
     {
-        deviceCreateInfo.enabledLayerCount = static_cast<uint32_t>(validationLayer.size());
-        deviceCreateInfo.ppEnabledLayerNames = validationLayer.data();
+        deviceCreateInfo.enabledLayerCount = static_cast<uint32_t>(_validationLayer.size());
+        deviceCreateInfo.ppEnabledLayerNames = _validationLayer.data();
     }
     else 
     {
@@ -267,8 +288,8 @@ void VulkanEngine::init_vulkan()
     }
 
     // Get queue handle
-    vkGetDeviceQueue(_device, indices.graphicsFamily.value(), 0, &graphicsQueue);
-    vkGetDeviceQueue(_device, indices.presentFamily.value(), 0, &presentQueue);
+    vkGetDeviceQueue(_device, indices.graphicsFamily.value(), 0, &_graphicsQueue);
+    vkGetDeviceQueue(_device, indices.presentFamily.value(), 0, &_presentQueue);
 }
 
 void VulkanEngine::init_swapchain()
