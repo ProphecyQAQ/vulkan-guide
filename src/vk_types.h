@@ -9,6 +9,7 @@
 #include <span>
 #include <array>
 #include <limits>
+#include <algorithm>
 #include <set>
 #include <functional>
 #include <deque>

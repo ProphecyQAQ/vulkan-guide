@@ -44,6 +44,7 @@ public:
 	// presentation
 	VkSurfaceKHR _surface;
 	VkQueue _presentQueue;
+	VkSwapchainKHR _swapChain;
 
 private:
 	void init_vulkan();
@@ -52,6 +53,7 @@ private:
 	void init_sync_structures();
 
 	bool check_validation_support();
+	QueueFamilyIndices find_queue_families(VkPhysicalDevice device);
 	bool is_device_suitable(VkPhysicalDevice physicalDevice);
 	bool is_queue_family_suitable_for_graphics(VkQueueFamilyProperties queueFamilyProperty);
 	bool is_queue_family_suitable_for_presentation(VkQueueFamilyProperties queueFamilyProperty, uint32_t queueFamilyIndex);

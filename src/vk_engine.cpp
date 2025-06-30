@@ -80,6 +80,38 @@ bool VulkanEngine::check_validation_support()
     return true;
 }
 
+QueueFamilyIndices VulkanEngine::find_queue_families(VkPhysicalDevice device)
+{
+    std::vector<VkQueueFamilyProperties> queueFamilyProperties = VulkanHeaplerLibrary::get_queue_family(_chosenGPU);
+    QueueFamilyIndices indices;
+    for (int i = 0; i < queueFamilyProperties.size(); i ++)
+    {
+        if (is_queue_family_suitable_for_graphics(queueFamilyProperties[i]))
+        {
+            indices.graphicsFamily = i;
+        }
+        if (is_queue_family_suitable_for_presentation(queueFamilyProperties[i], i))
+        {
+            indices.presentFamily = i;
+        }
+
+        if (indices.is_complete())
+        {
+            break;
+        }
+    }
+    if (indices.is_complete())
+    {
+        fmt::println("[VulkanEngine] [init_valkan] find graphics queue family {}, presentation family {}", indices.graphicsFamily.value(), indices.presentFamily.value());
+    }
+    else 
+    {
+        throw std::runtime_error("[VulkanEngine] [init_valkan] no graphics queue family");
+    }
+
+    return indices;
+}
+
 bool VulkanEngine::is_device_suitable(VkPhysicalDevice physicalDevice)
 {
     VkPhysicalDeviceProperties deviceProperties;
@@ -249,32 +281,7 @@ void VulkanEngine::init_vulkan()
     }
 
     // create queue family
-    std::vector<VkQueueFamilyProperties> queueFamilyProperties = VulkanHeaplerLibrary::get_queue_family(_chosenGPU);
-    QueueFamilyIndices indices;
-    for (int i = 0; i < queueFamilyProperties.size(); i ++)
-    {
-        if (is_queue_family_suitable_for_graphics(queueFamilyProperties[i]))
-        {
-            indices.graphicsFamily = i;
-        }
-        if (is_queue_family_suitable_for_presentation(queueFamilyProperties[i], i))
-        {
-            indices.presentFamily = i;
-        }
-
-        if (indices.is_complete())
-        {
-            break;
-        }
-    }
-    if (indices.is_complete())
-    {
-        fmt::println("[VulkanEngine] [init_valkan] find graphics queue family {}, presentation family {}", indices.graphicsFamily.value(), indices.presentFamily.value());
-    }
-    else 
-    {
-        throw std::runtime_error("[VulkanEngine] [init_valkan] no graphics queue family");
-    }
+    QueueFamilyIndices indices = find_queue_families(_chosenGPU);
 
     // set up a logical device
 
@@ -358,7 +365,31 @@ void VulkanEngine::init_swapchain()
     createInfo.imageColorSpace = surfaceFormat.colorSpace;
     createInfo.imageArrayLayers = 1;
     createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-}
+
+    QueueFamilyIndices indices = find_queue_families(_chosenGPU);
+    uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
+    if (indices.graphicsFamily.value() == indices.presentFamily.value())
+    {
+        createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    }   
+    else
+    {
+        createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+        createInfo.pQueueFamilyIndices = queueFamilyIndices;
+        createInfo.queueFamilyIndexCount = 2;
+    }
+    createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
+    createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+
+    createInfo.presentMode = presentMode;
+    createInfo.clipped = VK_TRUE;
+    createInfo.oldSwapchain = VK_NULL_HANDLE;
+
+    if (vkCreateSwapchainKHR(_device, &createInfo, nullptr, &_swapChain) != VK_SUCCESS)
+    {
+        throw std::runtime_error("[VulkanEngine] [init_swapchain] failed to create swap chain!");
+    }
+}   
 
 void VulkanEngine::init_commands()
 {
@@ -376,6 +407,7 @@ void VulkanEngine::cleanup()
         SDL_DestroyWindow(_window);
     }
 
+    vkDestroySwapchainKHR(_device, _swapChain, nullptr);
     vkDestroyDevice(_device, nullptr);
     vkDestroySurfaceKHR(_instance, _surface, nullptr);
     vkDestroyInstance(_instance, nullptr);
