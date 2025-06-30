@@ -95,6 +95,7 @@ bool VulkanEngine::is_device_suitable(VkPhysicalDevice physicalDevice)
     std::vector<VkExtensionProperties> supportedDeviceExtensions(extensionCount);
     vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, supportedDeviceExtensions.data());
 
+    // check device wether support swapchain
     bool extensionSupport = true;
     for (auto neededDeviceExtension:_deviceExtensions)
     {
@@ -108,7 +109,14 @@ bool VulkanEngine::is_device_suitable(VkPhysicalDevice physicalDevice)
         }
     }
 
-    return deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && deviceFeatures.geometryShader && extensionSupport;
+    bool swapchainAdequate = true;
+    SwapChainSupportDetails swapChainSupport = VulkanHeaplerLibrary::query_swap_chain_support(physicalDevice, _surface);
+    if (extensionSupport)
+    {
+        swapchainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
+    }
+
+    return deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && deviceFeatures.geometryShader && extensionSupport && swapchainAdequate;
 }
 
 bool VulkanEngine::is_queue_family_suitable_for_graphics(VkQueueFamilyProperties queueFamilyProperty)
@@ -188,6 +196,13 @@ void VulkanEngine::init_vulkan()
         throw std::runtime_error("failed to create instance!");
     }
 
+    // create surface
+    if (!SDL_Vulkan_CreateSurface(_window, _instance, &_surface))
+    {
+        throw std::runtime_error("[VulkanEngine] [init_swapchain] create surface failed");
+    }
+
+
     // get physical device
     std::vector<VkPhysicalDevice> physicalDevices = VulkanHeaplerLibrary::get_physical_devices(_instance);
     for (const auto& physicalDevice : physicalDevices)
@@ -208,12 +223,6 @@ void VulkanEngine::init_vulkan()
     else 
     {
         throw std::runtime_error("[VulkanEngine] [init_valkan] no chosenGPU");
-    }
-
-    // create surface
-    if (!SDL_Vulkan_CreateSurface(_window, _instance, &_surface))
-    {
-        throw std::runtime_error("[VulkanEngine] [init_swapchain] create surface failed");
     }
 
     // create queue family
@@ -270,8 +279,9 @@ void VulkanEngine::init_vulkan()
     deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
     deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
     deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
+    deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(_deviceExtensions.size());
+    deviceCreateInfo.ppEnabledExtensionNames = _deviceExtensions.data();
 
-    deviceCreateInfo.enabledExtensionCount = 0;
     if (check_validation_support()) 
     {
         deviceCreateInfo.enabledLayerCount = static_cast<uint32_t>(_validationLayer.size());
@@ -294,6 +304,10 @@ void VulkanEngine::init_vulkan()
 
 void VulkanEngine::init_swapchain()
 {
+    // need check:
+    // Basic surface capabilities (min/max number of images in swap chain, min/max width and height of images)
+    // Surface formats (pixel format, color space)
+    // Available presentation modes
 
 }
 

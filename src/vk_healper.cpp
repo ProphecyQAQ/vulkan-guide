@@ -25,7 +25,34 @@ std::vector<VkQueueFamilyProperties> VulkanHeaplerLibrary::get_queue_family(VkPh
     std::vector<VkQueueFamilyProperties> queueFamilyProperties(queueFamilyCount);
     vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilyProperties.data());
 
-    fmt::println("[VulkanHealper] [get_queue_family]] queue family num {}", queueFamilyProperties.size());
+    fmt::println("[VulkanHealper] [get_queue_family] queue family num {}", queueFamilyProperties.size());
 
     return queueFamilyProperties;
+}
+
+SwapChainSupportDetails VulkanHeaplerLibrary::query_swap_chain_support(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface) 
+{
+    SwapChainSupportDetails details;
+
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &details.capabilities);
+
+    // surface format
+    uint32_t formatCount;
+    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, nullptr);
+    if (formatCount != 0)
+    {
+        details.formats.resize(formatCount);
+        vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, details.formats.data());
+    }
+
+    // present mode
+    uint32_t presentCount;
+    vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentCount, nullptr);
+    if (presentCount != 0)
+    {
+        details.presentModes.resize(presentCount);
+        vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentCount, details.presentModes.data());
+    }
+
+    return details;
 }
