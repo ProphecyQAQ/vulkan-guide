@@ -55,4 +55,6 @@ private:
 	bool is_device_suitable(VkPhysicalDevice physicalDevice);
 	bool is_queue_family_suitable_for_graphics(VkQueueFamilyProperties queueFamilyProperty);
 	bool is_queue_family_suitable_for_presentation(VkQueueFamilyProperties queueFamilyProperty, uint32_t queueFamilyIndex);
+	
+	VkExtent2D choose_swap_extent(const VkSurfaceCapabilitiesKHR& capabilities);
 };

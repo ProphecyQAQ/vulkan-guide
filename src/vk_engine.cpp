@@ -139,6 +139,29 @@ bool VulkanEngine::is_queue_family_suitable_for_presentation(VkQueueFamilyProper
     return false;
 }
 
+VkExtent2D VulkanEngine::choose_swap_extent(const VkSurfaceCapabilitiesKHR& capabilities)
+{
+    if (capabilities.currentExtent.width == std::numeric_limits<uint32_t>::max())
+    {
+        return capabilities.currentExtent;
+    }
+    else
+    {
+        int width{}, height{};
+        SDL_Vulkan_GetDrawableSize(_window, &width, &height);
+
+        VkExtent2D actualExtent = {
+            static_cast<uint32_t>(width),
+            static_cast<uint32_t>(height)
+        };
+
+        actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+        actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+
+        return actualExtent;
+    }
+}
+
 void VulkanEngine::init_vulkan()
 {
     // create application info, not necessary
@@ -310,7 +333,31 @@ void VulkanEngine::init_swapchain()
     // Presentation mode (conditions for "swapping" images to the screen)
     // Swap extent (resolution of images in swap chain)
 
-    
+    SwapChainSupportDetails swapChainSupport = VulkanHeaplerLibrary::query_swap_chain_support(_chosenGPU, _surface);
+
+    VkSurfaceFormatKHR surfaceFormat = VulkanHeaplerLibrary::select_swap_surface_format(swapChainSupport.formats);
+    VkPresentModeKHR presentMode = VulkanHeaplerLibrary::select_swap_present_mode(swapChainSupport.presentModes);
+    VkExtent2D extent = choose_swap_extent(swapChainSupport.capabilities);
+
+    fmt::println("[VulkanEngine] [init_swapchain] select\n surface format: {}\n color space: {}\n presentMode: {}\n extent.width: {} extent.height {}", magic_enum::enum_name(surfaceFormat.format), magic_enum::enum_name(surfaceFormat.colorSpace), magic_enum::enum_name(presentMode), extent.width, extent.height);
+
+    // set image num in swap chain
+    uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
+    if (swapChainSupport.capabilities.maxImageCount > 0)
+    {
+        imageCount = std::min(imageCount, swapChainSupport.capabilities.maxImageCount);
+    }
+
+    // create swap chain
+    VkSwapchainCreateInfoKHR createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    createInfo.surface = _surface;
+    createInfo.minImageCount = imageCount;
+    createInfo.imageExtent = extent;
+    createInfo.imageFormat = surfaceFormat.format;
+    createInfo.imageColorSpace = surfaceFormat.colorSpace;
+    createInfo.imageArrayLayers = 1;
+    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 }
 
 void VulkanEngine::init_commands()
