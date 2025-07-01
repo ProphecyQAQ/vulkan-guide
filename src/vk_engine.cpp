@@ -347,6 +347,8 @@ void VulkanEngine::init_swapchain()
     VkExtent2D extent = choose_swap_extent(swapChainSupport.capabilities);
 
     fmt::println("[VulkanEngine] [init_swapchain] select\n surface format: {}\n color space: {}\n presentMode: {}\n extent.width: {} extent.height {}", magic_enum::enum_name(surfaceFormat.format), magic_enum::enum_name(surfaceFormat.colorSpace), magic_enum::enum_name(presentMode), extent.width, extent.height);
+    _swapChainFormat = surfaceFormat.format;
+    _swapChainExtent = extent;
 
     // set image num in swap chain
     uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
@@ -389,6 +391,11 @@ void VulkanEngine::init_swapchain()
     {
         throw std::runtime_error("[VulkanEngine] [init_swapchain] failed to create swap chain!");
     }
+
+    uint32_t swapChainImageCount;
+    vkGetSwapchainImagesKHR(_device, _swapChain, &swapChainImageCount, nullptr);
+    _swapChainImage.resize(imageCount);
+    vkGetSwapchainImagesKHR(_device, _swapChain, &swapChainImageCount, _swapChainImage.data());
 }   
 
 void VulkanEngine::init_commands()

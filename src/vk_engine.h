@@ -45,6 +45,9 @@ public:
 	VkSurfaceKHR _surface;
 	VkQueue _presentQueue;
 	VkSwapchainKHR _swapChain;
+	std::vector<VkImage> _swapChainImage;
+	VkFormat _swapChainFormat;
+	VkExtent2D _swapChainExtent;
 
 private:
 	void init_vulkan();
