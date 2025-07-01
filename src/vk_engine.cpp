@@ -394,8 +394,35 @@ void VulkanEngine::init_swapchain()
 
     uint32_t swapChainImageCount;
     vkGetSwapchainImagesKHR(_device, _swapChain, &swapChainImageCount, nullptr);
-    _swapChainImage.resize(imageCount);
+    _swapChainImage.resize(swapChainImageCount);
     vkGetSwapchainImagesKHR(_device, _swapChain, &swapChainImageCount, _swapChainImage.data());
+
+    // create image view for swap chain image
+    _swapChainImageView.resize(swapChainImageCount);
+    for (uint32_t i = 0; i < swapChainImageCount; i ++)
+    {
+        VkImageViewCreateInfo viewCreateInfo{};
+        viewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        viewCreateInfo.image = _swapChainImage[i];
+        viewCreateInfo.format = _swapChainFormat;
+        viewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        
+        viewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+        viewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+        viewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+        viewCreateInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+
+        viewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        viewCreateInfo.subresourceRange.baseMipLevel = 0;
+        viewCreateInfo.subresourceRange.levelCount = 1;
+        viewCreateInfo.subresourceRange.baseArrayLayer = 0;
+        viewCreateInfo.subresourceRange.layerCount = 1;
+        
+        if (vkCreateImageView(_device, &viewCreateInfo, nullptr, &_swapChainImageView[i]) != VK_SUCCESS)
+        {
+            throw std::runtime_error("[VulkanEngine] [init_swapchain] failed to create image views!");
+        }
+    }
 }   
 
 void VulkanEngine::init_commands()
@@ -412,6 +439,11 @@ void VulkanEngine::cleanup()
     if (_isInitialized) {
 
         SDL_DestroyWindow(_window);
+    }
+
+    for (auto &view : _swapChainImageView)
+    {
+        vkDestroyImageView(_device, view, nullptr);
     }
 
     vkDestroySwapchainKHR(_device, _swapChain, nullptr);

@@ -46,6 +46,7 @@ public:
 	VkQueue _presentQueue;
 	VkSwapchainKHR _swapChain;
 	std::vector<VkImage> _swapChainImage;
+	std::vector<VkImageView> _swapChainImageView;
 	VkFormat _swapChainFormat;
 	VkExtent2D _swapChainExtent;
 
