@@ -427,7 +427,22 @@ void VulkanEngine::init_swapchain()
 
 void VulkanEngine::init_commands()
 {
-    //nothing yet
+    // Alloc vkCommanderBuffer from VkCommanderPool
+    // using vkCmdxxx records cmd into commander buffer
+    // submit commander buffrt into vkQueue
+
+    QueueFamilyIndices indices = find_queue_families(_chosenGPU);
+
+    VkCommandPoolCreateInfo commandPoolInfo = vkinit::command_pool_create_info(indices.graphicsFamily.value(), VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+
+    for (int i = 0; i < FRAME_OVERLAP; i ++)
+    {
+        VK_CHECK(vkCreateCommandPool(_device, &commandPoolInfo, nullptr, &_frameData[i]._commandPool));
+        
+        VkCommandBufferAllocateInfo cmdAllocInfo = vkinit::command_buffer_allocate_info(_frameData[i]._commandPool);
+
+        VK_CHECK(vkAllocateCommandBuffers(_device, &cmdAllocInfo, &_frameData[i]._commandBuffer));
+    }
 }
 void VulkanEngine::init_sync_structures()
 {
@@ -439,17 +454,22 @@ void VulkanEngine::cleanup()
     if (_isInitialized) {
 
         SDL_DestroyWindow(_window);
-    }
+    
+        for (auto &view : _swapChainImageView)
+        {
+            vkDestroyImageView(_device, view, nullptr);
+        }
 
-    for (auto &view : _swapChainImageView)
-    {
-        vkDestroyImageView(_device, view, nullptr);
-    }
+        for (int i = 0; i < FRAME_OVERLAP; i ++)
+        {
+            vkDestroyCommandPool(_device, _frameData[i]._commandPool, nullptr);
+        }
 
-    vkDestroySwapchainKHR(_device, _swapChain, nullptr);
-    vkDestroyDevice(_device, nullptr);
-    vkDestroySurfaceKHR(_instance, _surface, nullptr);
-    vkDestroyInstance(_instance, nullptr);
+        vkDestroySwapchainKHR(_device, _swapChain, nullptr);
+        vkDestroyDevice(_device, nullptr);
+        vkDestroySurfaceKHR(_instance, _surface, nullptr);
+        vkDestroyInstance(_instance, nullptr);
+    }
 
     // clear engine pointer
     loadedEngine = nullptr;

@@ -7,6 +7,13 @@
 #include <vk_initializers.h>
 #include <vk_healper.h>
 
+struct FrameData {
+	VkCommandPool _commandPool;
+	VkCommandBuffer _commandBuffer;
+};
+
+constexpr unsigned int FRAME_OVERLAP = 2;
+
 class VulkanEngine {
 public:
 
@@ -32,6 +39,9 @@ public:
 	void run();
 
 public:
+	FrameData& get_current_frame() {return _frameData[_frameNumber%FRAME_OVERLAP];}
+
+public:
 	std::vector<const char*> _validationLayer;
 	std::vector<const char*> _deviceExtensions;
 
@@ -40,6 +50,8 @@ public:
 	VkPhysicalDevice _chosenGPU;
 	VkDevice _device;
 	VkQueue _graphicsQueue;
+
+	FrameData _frameData[FRAME_OVERLAP];
 
 	// presentation
 	VkSurfaceKHR _surface;
