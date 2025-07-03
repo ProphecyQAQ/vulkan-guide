@@ -444,9 +444,23 @@ void VulkanEngine::init_commands()
         VK_CHECK(vkAllocateCommandBuffers(_device, &cmdAllocInfo, &_frameData[i]._commandBuffer));
     }
 }
+
 void VulkanEngine::init_sync_structures()
 {
-    //nothing yet
+    // create syncronization structures
+    // fence to control when gpu has finished rendering current frame
+    // 2 semaphores to syncronize rendering with swapchain
+
+    VkFenceCreateInfo fenceCreateInfo = vkinit::fence_create_info(VK_FENCE_CREATE_SIGNALED_BIT);
+    VkSemaphoreCreateInfo semaphoreCreateInfo = vkinit::semaphore_create_info();
+
+    for (int i = 0; i < FRAME_OVERLAP; i ++)
+    {
+        VK_CHECK(vkCreateFence(_device, &fenceCreateInfo, nullptr, &_frameData[i]._renderFence));
+
+        VK_CHECK(vkCreateSemaphore(_device, &semaphoreCreateInfo, nullptr, &_frameData[i]._renderSemaphore));
+        VK_CHECK(vkCreateSemaphore(_device, &semaphoreCreateInfo, nullptr, &_frameData[i]._swapchainSemaphore));
+    }
 }
 
 void VulkanEngine::cleanup()
