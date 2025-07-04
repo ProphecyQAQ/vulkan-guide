@@ -488,7 +488,11 @@ void VulkanEngine::cleanup()
             vkDestroyFence(_device, _frameData[i]._renderFence, nullptr);
             vkDestroySemaphore(_device, _frameData[i]._swapchainSemaphore, nullptr);
             vkDestroySemaphore(_device, _frameData[i]._renderSemaphore, nullptr);
+
+            _frameData[i]._deletionQueue.flush();
         }
+
+        _mainDeletionQueue.flush();
 
         vkDestroySwapchainKHR(_device, _swapChain, nullptr);
         vkDestroySurfaceKHR(_instance, _surface, nullptr);
@@ -508,6 +512,7 @@ void VulkanEngine::draw()
 
     // wait until the gpu has finished rendering the last frame
     VK_CHECK(vkWaitForFences(_device, 1, &currentFrame._renderFence, true, UINT64_MAX));
+    currentFrame._deletionQueue.flush();
     VK_CHECK(vkResetFences(_device, 1, &currentFrame._renderFence));
 
     uint32_t swapchainImageIndex;

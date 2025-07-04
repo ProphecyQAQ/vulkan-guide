@@ -7,12 +7,33 @@
 #include <vk_initializers.h>
 #include <vk_healper.h>
 
+struct DeletionQueue
+{
+	std::deque<std::function<void()>> deletors;
+
+	void push_function(std::function<void()>&& function)
+	{
+		deletors.push_back(function);
+	}
+
+	void flush()
+	{
+		for (auto it = deletors.begin(); it != deletors.end(); it ++)
+		{
+			(*it)();
+		}
+		deletors.clear();
+	}
+};
+
 struct FrameData {
 	VkCommandPool _commandPool;
 	VkCommandBuffer _commandBuffer;
 
 	VkSemaphore _swapchainSemaphore, _renderSemaphore;
 	VkFence _renderFence;
+
+	DeletionQueue _deletionQueue;
 };
 
 constexpr unsigned int FRAME_OVERLAP = 2;
@@ -78,4 +99,7 @@ private:
 	bool is_queue_family_suitable_for_presentation(VkQueueFamilyProperties queueFamilyProperty, uint32_t queueFamilyIndex);
 	
 	VkExtent2D choose_swap_extent(const VkSurfaceCapabilitiesKHR& capabilities);
+
+private:
+	DeletionQueue _mainDeletionQueue;
 };
