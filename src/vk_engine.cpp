@@ -303,6 +303,9 @@ void VulkanEngine::init_vulkan()
 
     // Specifying used device features
     VkPhysicalDeviceFeatures deviceFeatures{};
+    VkPhysicalDeviceSynchronization2Features sync2Features{};
+    sync2Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES;
+    sync2Features.synchronization2 = true;
 
     // create logical device
     VkDeviceCreateInfo deviceCreateInfo{};
@@ -312,6 +315,7 @@ void VulkanEngine::init_vulkan()
     deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
     deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(_deviceExtensions.size());
     deviceCreateInfo.ppEnabledExtensionNames = _deviceExtensions.data();
+    deviceCreateInfo.pNext = &sync2Features;
 
     if (check_validation_support()) 
     {
@@ -356,6 +360,7 @@ void VulkanEngine::init_swapchain()
     if (swapChainSupport.capabilities.maxImageCount > 0)
     {
         imageCount = std::min(imageCount, swapChainSupport.capabilities.maxImageCount);
+        imageCount = std::min(imageCount, FRAME_OVERLAP);
     }
 
     // create swap chain
@@ -367,7 +372,7 @@ void VulkanEngine::init_swapchain()
     createInfo.imageFormat = surfaceFormat.format;
     createInfo.imageColorSpace = surfaceFormat.colorSpace;
     createInfo.imageArrayLayers = 1;
-    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
     QueueFamilyIndices indices = find_queue_families(_chosenGPU);
     uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
@@ -468,7 +473,7 @@ void VulkanEngine::cleanup()
 {
     if (_isInitialized) {
 
-        SDL_DestroyWindow(_window);
+        vkDeviceWaitIdle(_device);
 
         for (auto &view : _swapChainImageView)
         {
@@ -486,9 +491,11 @@ void VulkanEngine::cleanup()
         }
 
         vkDestroySwapchainKHR(_device, _swapChain, nullptr);
-        vkDestroyDevice(_device, nullptr);
         vkDestroySurfaceKHR(_instance, _surface, nullptr);
+        vkDestroyDevice(_device, nullptr);
         vkDestroyInstance(_instance, nullptr);
+
+        SDL_DestroyWindow(_window);
     }
 
     // clear engine pointer
@@ -496,12 +503,15 @@ void VulkanEngine::cleanup()
 }
 
 void VulkanEngine::draw()
-{
-    // wait until the gpu has finished rendering the last frame
+{ 
     FrameData& currentFrame = get_current_frame();
 
+    // wait until the gpu has finished rendering the last frame
+    VK_CHECK(vkWaitForFences(_device, 1, &currentFrame._renderFence, true, UINT64_MAX));
+    VK_CHECK(vkResetFences(_device, 1, &currentFrame._renderFence));
+
     uint32_t swapchainImageIndex;
-    VK_CHECK(vkAcquireNextImageKHR(_device, _swapChain, static_cast<uint64_t>(1e9), currentFrame._swapchainSemaphore, nullptr, &swapchainImageIndex));
+    VK_CHECK(vkAcquireNextImageKHR(_device, _swapChain, UINT64_MAX, currentFrame._swapchainSemaphore, nullptr, &swapchainImageIndex));
 
     VkCommandBuffer cmd = currentFrame._commandBuffer;
     
@@ -550,6 +560,7 @@ void VulkanEngine::draw()
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     presentInfo.pSwapchains = &_swapChain;
     presentInfo.swapchainCount = 1;
+    presentInfo.pNext = nullptr;
 
     presentInfo.waitSemaphoreCount = 1;
     presentInfo.pWaitSemaphores = &currentFrame._renderSemaphore;
@@ -559,9 +570,6 @@ void VulkanEngine::draw()
     VK_CHECK(vkQueuePresentKHR(_graphicsQueue, &presentInfo));
 
     _frameNumber ++;
-
-    VK_CHECK(vkWaitForFences(_device, 1, &currentFrame._renderFence, true, static_cast<uint64_t>(1e9)));
-    VK_CHECK(vkResetFences(_device, 1, &currentFrame._renderFence));
 }
 
 void VulkanEngine::run()
