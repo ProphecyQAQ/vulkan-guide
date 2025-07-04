@@ -5,6 +5,7 @@
 #include <SDL_vulkan.h>
 
 #include <vk_initializers.h>
+#include <vk_images.h>
 #include <vk_types.h>
 
 #include <chrono>
@@ -468,7 +469,7 @@ void VulkanEngine::cleanup()
     if (_isInitialized) {
 
         SDL_DestroyWindow(_window);
-    
+
         for (auto &view : _swapChainImageView)
         {
             vkDestroyImageView(_device, view, nullptr);
@@ -477,6 +478,11 @@ void VulkanEngine::cleanup()
         for (int i = 0; i < FRAME_OVERLAP; i ++)
         {
             vkDestroyCommandPool(_device, _frameData[i]._commandPool, nullptr);
+
+            // destroy all sync struct
+            vkDestroyFence(_device, _frameData[i]._renderFence, nullptr);
+            vkDestroySemaphore(_device, _frameData[i]._swapchainSemaphore, nullptr);
+            vkDestroySemaphore(_device, _frameData[i]._renderSemaphore, nullptr);
         }
 
         vkDestroySwapchainKHR(_device, _swapChain, nullptr);
@@ -491,7 +497,71 @@ void VulkanEngine::cleanup()
 
 void VulkanEngine::draw()
 {
-    // nothing yet
+    // wait until the gpu has finished rendering the last frame
+    FrameData& currentFrame = get_current_frame();
+
+    uint32_t swapchainImageIndex;
+    VK_CHECK(vkAcquireNextImageKHR(_device, _swapChain, static_cast<uint64_t>(1e9), currentFrame._swapchainSemaphore, nullptr, &swapchainImageIndex));
+
+    VkCommandBuffer cmd = currentFrame._commandBuffer;
+    
+    // reset cmd before using
+    VK_CHECK(vkResetCommandBuffer(cmd, 0));
+
+    // create cmd begin info, and will use it once
+    VkCommandBufferBeginInfo cmdBeginInfo = vkinit::command_buffer_begin_info(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+    VK_CHECK(vkBeginCommandBuffer(cmd, &cmdBeginInfo));
+
+    // transition swapchian image into writeable image
+    vkutil::transition_image(cmd, _swapChainImage[swapchainImageIndex], VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+
+    // make a clear-color
+    VkClearColorValue clearValue;
+    float flash = std::abs(std::sin(_frameNumber / 120.f));
+    clearValue = { {0.f, 0.f, flash, 1.f} };
+
+    VkImageSubresourceRange clearRange = vkinit::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT);
+
+    // clear image
+    vkCmdClearColorImage(cmd, _swapChainImage[swapchainImageIndex], VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1, &clearRange);
+
+    // transition image to presentable layout
+    vkutil::transition_image(cmd, _swapChainImage[swapchainImageIndex], VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+
+    // finish command buffer
+    VK_CHECK(vkEndCommandBuffer(cmd));
+
+    // prepare for submit to the queue
+    // wait on the _presentSemaphore, as that semaphore is signaled when the swapchian is ready
+    // will signal the _renderSemaphore, to signal that rendering has finished
+    VkCommandBufferSubmitInfo cmdSubmitInfo = vkinit::command_buffer_submit_info(cmd);
+
+    VkSemaphoreSubmitInfo waitSemaInfo = vkinit::semaphore_submit_info(VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR, currentFrame._swapchainSemaphore);
+    VkSemaphoreSubmitInfo signalSeamInfo = vkinit::semaphore_submit_info(VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT, currentFrame._renderSemaphore);
+
+    VkSubmitInfo2 submitInfo = vkinit::submit_info(&cmdSubmitInfo, &signalSeamInfo, &waitSemaInfo);
+
+    VK_CHECK(vkQueueSubmit2(_graphicsQueue, 1, &submitInfo, currentFrame._renderFence));
+
+    // prepare for present
+    // put image we just rendered into window
+    // need wait on _renderSemaphore
+    VkPresentInfoKHR presentInfo{};
+    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    presentInfo.pSwapchains = &_swapChain;
+    presentInfo.swapchainCount = 1;
+
+    presentInfo.waitSemaphoreCount = 1;
+    presentInfo.pWaitSemaphores = &currentFrame._renderSemaphore;
+
+    presentInfo.pImageIndices = &swapchainImageIndex;
+
+    VK_CHECK(vkQueuePresentKHR(_graphicsQueue, &presentInfo));
+
+    _frameNumber ++;
+
+    VK_CHECK(vkWaitForFences(_device, 1, &currentFrame._renderFence, true, static_cast<uint64_t>(1e9)));
+    VK_CHECK(vkResetFences(_device, 1, &currentFrame._renderFence));
 }
 
 void VulkanEngine::run()
