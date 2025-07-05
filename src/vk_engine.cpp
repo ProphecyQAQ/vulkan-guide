@@ -7,6 +7,8 @@
 #include <vk_initializers.h>
 #include <vk_images.h>
 #include <vk_types.h>
+#define VMA_IMPLEMENTATION
+#include "vk_mem_alloc.h"
 
 #include <chrono>
 #include <thread>
@@ -335,6 +337,17 @@ void VulkanEngine::init_vulkan()
     // Get queue handle
     vkGetDeviceQueue(_device, indices.graphicsFamily.value(), 0, &_graphicsQueue);
     vkGetDeviceQueue(_device, indices.presentFamily.value(), 0, &_presentQueue);
+
+    // init vma lib
+    VmaAllocatorCreateInfo vmaCreateInfo{};
+    vmaCreateInfo.physicalDevice = _chosenGPU;
+    vmaCreateInfo.device = _device;
+    vmaCreateInfo.instance = _instance;
+    vmaCreateInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
+    vmaCreateAllocator(&vmaCreateInfo, &_allocator);
+    _mainDeletionQueue.push_function([&]() {
+        vmaDestroyAllocator(_allocator);
+    });
 }
 
 void VulkanEngine::init_swapchain()
@@ -429,6 +442,43 @@ void VulkanEngine::init_swapchain()
             throw std::runtime_error("[VulkanEngine] [init_swapchain] failed to create image views!");
         }
     }
+
+    // create draw resource
+    VkExtent3D drawImageExtent =  {
+        _windowExtent.width,
+        _windowExtent.height,
+        1
+    };
+
+    // set image format
+    _drawImage.imageFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
+    _drawImage.imageExtent = drawImageExtent;
+
+    VkImageUsageFlags drawImageUsage;
+    drawImageUsage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | 
+                     VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+                     VK_IMAGE_USAGE_STORAGE_BIT |
+                     VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+    VkImageCreateInfo imageCreateInfo = vkinit::image_create_info(_drawImage.imageFormat, drawImageUsage, drawImageExtent);
+
+    // need allocat it from gpu local memoty
+    VmaAllocationCreateInfo imageAllocationInfo{};
+    imageAllocationInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+    imageAllocationInfo.requiredFlags = VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+    // allocate and create image
+    vmaCreateImage(_allocator, &imageCreateInfo, &imageAllocationInfo, &_drawImage.image, &_drawImage.allocation, nullptr);
+
+    // build image view
+    VkImageViewCreateInfo imageViewInfo = vkinit::imageview_create_info(_drawImage.imageFormat, _drawImage.image, VK_IMAGE_ASPECT_COLOR_BIT);
+    VK_CHECK(vkCreateImageView(_device, &imageViewInfo, nullptr, &_drawImage.imageView));
+
+    // add to deletion queue
+    _mainDeletionQueue.push_function([=]() {
+        vmaDestroyImage(_allocator, _drawImage.image, _drawImage.allocation);
+        vkDestroyImageView(_device, _drawImage.imageView, nullptr);
+    });
 }   
 
 void VulkanEngine::init_commands()

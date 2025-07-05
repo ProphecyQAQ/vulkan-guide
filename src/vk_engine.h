@@ -18,7 +18,7 @@ struct DeletionQueue
 
 	void flush()
 	{
-		for (auto it = deletors.begin(); it != deletors.end(); it ++)
+		for (auto it = deletors.rbegin(); it != deletors.rend(); it ++)
 		{
 			(*it)();
 		}
@@ -69,6 +69,8 @@ public:
 	std::vector<const char*> _validationLayer;
 	std::vector<const char*> _deviceExtensions;
 
+	VmaAllocator _allocator;
+
 	VkInstance _instance;
 	VkDebugUtilsMessengerEXT _debug_messager; // Vulkan debug output handle
 	VkPhysicalDevice _chosenGPU;
@@ -85,6 +87,10 @@ public:
 	std::vector<VkImageView> _swapChainImageView;
 	VkFormat _swapChainFormat;
 	VkExtent2D _swapChainExtent;
+
+	// draw resource
+	AllocatedImage _drawImage;
+	VkExtent2D _drawExtent;
 
 private:
 	void init_vulkan();
