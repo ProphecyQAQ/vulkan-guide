@@ -556,6 +556,19 @@ void VulkanEngine::cleanup()
     loadedEngine = nullptr;
 }
 
+void VulkanEngine::draw_background(VkCommandBuffer cmd)
+{
+    // make a clear-color
+    VkClearColorValue clearValue;
+    float flash = std::abs(std::sin(_frameNumber / 120.f));
+    clearValue = { {0.f, 0.f, flash, 1.f} };
+
+    VkImageSubresourceRange clearRange = vkinit::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT);
+
+    // clear image
+    vkCmdClearColorImage(cmd, _drawImage.image, VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1, &clearRange);
+}
+
 void VulkanEngine::draw()
 { 
     FrameData& currentFrame = get_current_frame();
@@ -564,6 +577,9 @@ void VulkanEngine::draw()
     VK_CHECK(vkWaitForFences(_device, 1, &currentFrame._renderFence, true, UINT64_MAX));
     currentFrame._deletionQueue.flush();
     VK_CHECK(vkResetFences(_device, 1, &currentFrame._renderFence));
+
+    _drawExtent.width = _drawImage.imageExtent.width;
+    _drawExtent.height = _drawImage.imageExtent.height;
 
     uint32_t swapchainImageIndex;
     VK_CHECK(vkAcquireNextImageKHR(_device, _swapChain, UINT64_MAX, currentFrame._swapchainSemaphore, nullptr, &swapchainImageIndex));
@@ -577,21 +593,21 @@ void VulkanEngine::draw()
     VkCommandBufferBeginInfo cmdBeginInfo = vkinit::command_buffer_begin_info(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
     VK_CHECK(vkBeginCommandBuffer(cmd, &cmdBeginInfo));
 
-    // transition swapchian image into writeable image
-    vkutil::transition_image(cmd, _swapChainImage[swapchainImageIndex], VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+    // transition the draw image into writeable image
+    vkutil::transition_image(cmd, _drawImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 
-    // make a clear-color
-    VkClearColorValue clearValue;
-    float flash = std::abs(std::sin(_frameNumber / 120.f));
-    clearValue = { {0.f, 0.f, flash, 1.f} };
+    // draw image
+    draw_background(cmd);
 
-    VkImageSubresourceRange clearRange = vkinit::image_subresource_range(VK_IMAGE_ASPECT_COLOR_BIT);
+    // transition the draw image and swapchain image into transfer layout
+    vkutil::transition_image(cmd, _drawImage.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+    vkutil::transition_image(cmd, _swapChainImage[swapchainImageIndex], VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
-    // clear image
-    vkCmdClearColorImage(cmd, _swapChainImage[swapchainImageIndex], VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1, &clearRange);
+    // copy draw image to swapchain image
+    vkutil::copy_image_to_image(cmd, _drawImage.image, _swapChainImage[swapchainImageIndex], _drawExtent, _swapChainExtent);
 
-    // transition image to presentable layout
-    vkutil::transition_image(cmd, _swapChainImage[swapchainImageIndex], VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+    // transfer swapchian image to present layout
+    vkutil::transition_image(cmd, _swapChainImage[swapchainImageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
     // finish command buffer
     VK_CHECK(vkEndCommandBuffer(cmd));

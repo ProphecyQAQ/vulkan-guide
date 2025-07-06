@@ -32,6 +32,7 @@ std::vector<VkQueueFamilyProperties> VulkanHeaplerLibrary::get_queue_family(VkPh
 
 SwapChainSupportDetails VulkanHeaplerLibrary::query_swap_chain_support(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface) 
 {
+    static bool verbose = true;
     SwapChainSupportDetails details;
 
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &details.capabilities);
@@ -45,11 +46,6 @@ SwapChainSupportDetails VulkanHeaplerLibrary::query_swap_chain_support(VkPhysica
         vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, details.formats.data());
     }
 
-    for (const auto& format:details.formats)
-    {
-        fmt::println("[VulkanHealper] [query_swap_chain_support] swap chain support format {}, color space {}", magic_enum::enum_name(format.format), magic_enum::enum_name(format.colorSpace));
-    }
-
     // present mode
     uint32_t presentCount;
     vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentCount, nullptr);
@@ -59,9 +55,17 @@ SwapChainSupportDetails VulkanHeaplerLibrary::query_swap_chain_support(VkPhysica
         vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentCount, details.presentModes.data());
     }
 
-    for (const auto& presentMode:details.presentModes)
+    if (verbose)
     {
-        fmt::println("[VulkanHealper] [query_swap_chain_support] swap chain support present mode {}", magic_enum::enum_name(presentMode));
+        for (const auto& format:details.formats)
+        {
+            fmt::println("[VulkanHealper] [query_swap_chain_support] swap chain support format {}, color space {}", magic_enum::enum_name(format.format), magic_enum::enum_name(format.colorSpace));
+        }
+        for (const auto& presentMode:details.presentModes)
+        {
+            fmt::println("[VulkanHealper] [query_swap_chain_support] swap chain support present mode {}", magic_enum::enum_name(presentMode));
+        }
+        verbose = false;
     }
 
     return details;
