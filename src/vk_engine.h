@@ -7,6 +7,7 @@
 #include <vk_initializers.h>
 #include <vk_descriptors.h>
 #include <vk_healper.h>
+#include <vk_pipelines.h>
 
 struct DeletionQueue
 {
@@ -101,12 +102,20 @@ public:
 	VkDescriptorSet _drawImageDescriptors;
 	VkDescriptorSetLayout _drawImageDescriptorLayout;
 
+	// Pipeline
+	VkPipeline _gradientPipeline;
+	VkPipelineLayout _gradientPipelineLayout;
+
 private:
 	void init_vulkan();
 	void init_swapchain();
 	void init_commands();
 	void init_sync_structures();
+	// descriptor
 	void init_descriptors();
+	// pipelines
+	void init_pipelines();
+	void init_background_pipelines();
 
 	bool check_validation_support();
 	QueueFamilyIndices find_queue_families(VkPhysicalDevice device);

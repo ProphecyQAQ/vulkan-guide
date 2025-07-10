@@ -49,6 +49,8 @@ void VulkanEngine::init()
 
     init_descriptors();
 
+    init_pipelines();
+
     // everything went fine
     _isInitialized = true;
 }
@@ -566,6 +568,54 @@ void VulkanEngine::init_descriptors()
         vkDestroyDescriptorSetLayout(_device, _drawImageDescriptorLayout, nullptr);
     }
     );
+}
+
+void VulkanEngine::init_pipelines()
+{
+    init_background_pipelines();
+}
+
+void VulkanEngine::init_background_pipelines()
+{   
+    // create pipeline layout
+    VkPipelineLayoutCreateInfo computeLayout{};
+    computeLayout.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    computeLayout.pNext = nullptr;
+    computeLayout.pSetLayouts = &_drawImageDescriptorLayout;
+    computeLayout.setLayoutCount = 1;
+
+    VK_CHECK(vkCreatePipelineLayout(_device, &computeLayout, nullptr, &_gradientPipelineLayout));
+
+    // load shader module
+    VkShaderModule computeDrawShader;
+    if (vkutil::load_shader_module("../../shaders/gradient.comp.spv", _device, &computeDrawShader) == false)
+    {
+        fmt::print("[VulkanEngine] [init_background_pipelines] Error when building the compute shader \n");
+    }
+
+    VkPipelineShaderStageCreateInfo computeShaderStage{};
+    computeShaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    computeShaderStage.pNext = nullptr;
+    computeShaderStage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+    computeShaderStage.module = computeDrawShader;
+    computeShaderStage.pName = "main";
+
+    VkComputePipelineCreateInfo computePipelineInfo{};
+    computePipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+    computePipelineInfo.pNext = nullptr;
+    computePipelineInfo.layout = _gradientPipelineLayout;
+    computePipelineInfo.stage = computeShaderStage;
+
+    VK_CHECK(vkCreateComputePipelines(_device, VK_NULL_HANDLE, 1, &computePipelineInfo, nullptr, &_gradientPipeline));
+
+    // clean up
+    vkDestroyShaderModule(_device, computeDrawShader, nullptr);
+
+    _mainDeletionQueue.push_function([&]()
+    {
+        vkDestroyPipelineLayout(_device, _gradientPipelineLayout, nullptr);
+        vkDestroyPipeline(_device, _gradientPipeline, nullptr);
+    });
 }
 
 void VulkanEngine::cleanup()
