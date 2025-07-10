@@ -69,7 +69,8 @@ public:
 
 public:
 	FrameData& get_current_frame() {return _frameData[_frameNumber%FRAME_OVERLAP];}
-
+	
+	void immediate_submit(std::function<void(VkCommandBuffer cmd)>&& function);
 public:
 	std::vector<const char*> _validationLayer;
 	std::vector<const char*> _deviceExtensions;
@@ -106,6 +107,11 @@ public:
 	VkPipeline _gradientPipeline;
 	VkPipelineLayout _gradientPipelineLayout;
 
+	// immediate submit structures
+	VkFence _immFence;
+	VkCommandPool _immCommandPool;
+	VkCommandBuffer _immCommandBuffer;
+
 private:
 	void init_vulkan();
 	void init_swapchain();
@@ -116,6 +122,8 @@ private:
 	// pipelines
 	void init_pipelines();
 	void init_background_pipelines();
+	// ui
+	void init_imgui();
 
 	bool check_validation_support();
 	QueueFamilyIndices find_queue_families(VkPhysicalDevice device);
