@@ -9,6 +9,10 @@
 #include <vk_healper.h>
 #include <vk_pipelines.h>
 
+#include "imgui.h"
+#include "imgui_impl_sdl2.h"
+#include "imgui_impl_vulkan.h"
+
 struct DeletionQueue
 {
 	std::deque<std::function<void()>> deletors;
@@ -94,7 +98,7 @@ public:
 	VkSwapchainKHR _swapChain;
 	std::vector<VkImage> _swapChainImage;
 	std::vector<VkImageView> _swapChainImageView;
-	VkFormat _swapChainFormat;
+	VkFormat _swapChainImageFormat;
 	VkExtent2D _swapChainExtent;
 
 	// draw resource
