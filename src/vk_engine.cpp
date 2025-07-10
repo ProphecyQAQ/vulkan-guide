@@ -47,6 +47,8 @@ void VulkanEngine::init()
 
     init_sync_structures();
 
+    init_descriptors();
+
     // everything went fine
     _isInitialized = true;
 }
@@ -305,9 +307,13 @@ void VulkanEngine::init_vulkan()
 
     // Specifying used device features
     VkPhysicalDeviceFeatures deviceFeatures{};
+    VkPhysicalDeviceBufferDeviceAddressFeatures bufferDeviceFeatures{};
+    bufferDeviceFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
+    bufferDeviceFeatures.bufferDeviceAddress = true;
     VkPhysicalDeviceSynchronization2Features sync2Features{};
     sync2Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES;
     sync2Features.synchronization2 = true;
+    sync2Features.pNext = &bufferDeviceFeatures;
 
     // create logical device
     VkDeviceCreateInfo deviceCreateInfo{};
@@ -517,6 +523,49 @@ void VulkanEngine::init_sync_structures()
         VK_CHECK(vkCreateSemaphore(_device, &semaphoreCreateInfo, nullptr, &_frameData[i]._renderSemaphore));
         VK_CHECK(vkCreateSemaphore(_device, &semaphoreCreateInfo, nullptr, &_frameData[i]._swapchainSemaphore));
     }
+}
+
+void VulkanEngine::init_descriptors()
+{
+    // create a descriptor pool that will hold 10 sets with 1 image
+    std::vector<DescriptorAllocator::PoolSizeRatio> sizes = {
+        {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1}
+    };
+
+    globalDescriptorAllocator.init_pool(_device, 10, sizes);
+
+    // make descriptor layout for our compute draw
+    {
+        DescriptorLayoutBuilder builder;
+        builder.add_binding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+        _drawImageDescriptorLayout = builder.build(_device, VK_SHADER_STAGE_COMPUTE_BIT);
+    }
+
+    // allocate a descriptor set for our draw image
+    _drawImageDescriptors = globalDescriptorAllocator.allocate(_device, _drawImageDescriptorLayout);
+
+    VkDescriptorImageInfo imageInfo{};
+    imageInfo.imageView = _drawImage.imageView;
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+    
+    // Structure specifying the parameters of a descriptor set write operation
+    VkWriteDescriptorSet drawImageWrite{};
+    drawImageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    drawImageWrite.pNext = nullptr;
+    drawImageWrite.pImageInfo = &imageInfo;
+    drawImageWrite.dstBinding = 0;
+    drawImageWrite.dstSet = _drawImageDescriptors;
+    drawImageWrite.descriptorCount = 1;
+    drawImageWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+
+    vkUpdateDescriptorSets(_device, 1, &drawImageWrite, 0, nullptr);
+
+    _mainDeletionQueue.push_function([&]()
+    {
+        globalDescriptorAllocator.destroy_pool(_device);
+        vkDestroyDescriptorSetLayout(_device, _drawImageDescriptorLayout, nullptr);
+    }
+    );
 }
 
 void VulkanEngine::cleanup()

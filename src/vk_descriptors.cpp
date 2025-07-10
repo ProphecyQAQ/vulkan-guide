@@ -51,9 +51,10 @@ void DescriptorAllocator::init_pool(VkDevice device, uint32_t maxSets, std::span
     }
 
     VkDescriptorPoolCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     createInfo.flags = 0;
     createInfo.maxSets = maxSets;
-    createInfo.poolSizeCount = poolSizes.size();
+    createInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
     createInfo.pPoolSizes = poolSizes.data();
 
     VK_CHECK(vkCreateDescriptorPool(device, &createInfo, nullptr, &pool));
@@ -78,8 +79,8 @@ VkDescriptorSet DescriptorAllocator::allocate(VkDevice device, VkDescriptorSetLa
     allocInfo.descriptorSetCount = 1;
     allocInfo.pSetLayouts = &layout;
 
-    VkDescriptorSet descriptorSet;
-    VK_CHECK(vkAllocateDescriptorSets(device, &allocInfo, nullptr));
+    VkDescriptorSet descriptorSet{};
+    VK_CHECK(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
 
     return descriptorSet;
 }

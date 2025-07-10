@@ -5,6 +5,7 @@
 
 #include <vk_types.h>
 #include <vk_initializers.h>
+#include <vk_descriptors.h>
 #include <vk_healper.h>
 
 struct DeletionQueue
@@ -72,6 +73,9 @@ public:
 	std::vector<const char*> _validationLayer;
 	std::vector<const char*> _deviceExtensions;
 
+	// descriptor
+	DescriptorAllocator globalDescriptorAllocator;
+
 	VmaAllocator _allocator;
 
 	VkInstance _instance;
@@ -94,12 +98,15 @@ public:
 	// draw resource
 	AllocatedImage _drawImage;
 	VkExtent2D _drawExtent;
+	VkDescriptorSet _drawImageDescriptors;
+	VkDescriptorSetLayout _drawImageDescriptorLayout;
 
 private:
 	void init_vulkan();
 	void init_swapchain();
 	void init_commands();
 	void init_sync_structures();
+	void init_descriptors();
 
 	bool check_validation_support();
 	QueueFamilyIndices find_queue_families(VkPhysicalDevice device);
