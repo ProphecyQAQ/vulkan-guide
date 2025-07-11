@@ -75,6 +75,7 @@ public:
 	FrameData& get_current_frame() {return _frameData[_frameNumber%FRAME_OVERLAP];}
 	
 	void immediate_submit(std::function<void(VkCommandBuffer cmd)>&& function);
+	void draw_imgui(VkCommandBuffer cmd, VkImageView targetImageView);
 public:
 	std::vector<const char*> _validationLayer;
 	std::vector<const char*> _deviceExtensions;

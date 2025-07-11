@@ -822,8 +822,16 @@ void VulkanEngine::draw()
     // copy draw image to swapchain image
     vkutil::copy_image_to_image(cmd, _drawImage.image, _swapChainImage[swapchainImageIndex], _drawExtent, _swapChainExtent);
 
+    {
+        // draw imgui
+
+        // transition swapchain image to color attachment layout
+        vkutil::transition_image(cmd, _swapChainImage[swapchainImageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+        draw_imgui(cmd, _swapChainImageView[swapchainImageIndex]);
+    }
+
     // transfer swapchian image to present layout
-    vkutil::transition_image(cmd, _swapChainImage[swapchainImageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+    vkutil::transition_image(cmd, _swapChainImage[swapchainImageIndex], VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
     // finish command buffer
     VK_CHECK(vkEndCommandBuffer(cmd));
@@ -880,6 +888,9 @@ void VulkanEngine::run()
                     stop_rendering = false;
                 }
             }
+
+            //send SDL event to imgui for handling
+            ImGui_ImplSDL2_ProcessEvent(&e);
         }
 
         // do not draw if we are minimized
@@ -889,6 +900,27 @@ void VulkanEngine::run()
             continue;
         }
 
+        // imgui new frame
+        ImGui_ImplVulkan_NewFrame();
+        ImGui_ImplSDL2_NewFrame();
+        ImGui::NewFrame();
+
+        //some imgui UI to test
+        ImGui::ShowDemoWindow();
+
+        //make imgui calculate internal draw structures
+        ImGui::Render();
+
         draw();
     }
+}
+
+void VulkanEngine::draw_imgui(VkCommandBuffer cmd, VkImageView targetImageView)
+{
+    VkRenderingAttachmentInfo attachmentInfo = vkinit::attachment_info(targetImageView, nullptr, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    VkRenderingInfo renderInfo = vkinit::rendering_info(_swapChainExtent, &attachmentInfo, nullptr);
+
+    vkCmdBeginRendering(cmd, &renderInfo);
+    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
+    vkCmdEndRendering(cmd);
 }
