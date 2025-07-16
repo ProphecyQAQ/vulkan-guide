@@ -84,6 +84,9 @@ public:
 	//draw image background
 	void draw_background(VkCommandBuffer cmd);
 
+	// draw gemotroy
+	void draw_geometry(VkCommandBuffer cmd);
+
 	//run main loop
 	void run();
 
@@ -127,6 +130,8 @@ public:
 	// Pipeline
 	VkPipeline _gradientPipeline;
 	VkPipelineLayout _gradientPipelineLayout;
+	VkPipelineLayout _trianglePipelineLayout;
+	VkPipeline _trianglePipeline;
 
 	// immediate submit structures
 	VkFence _immFence;
@@ -143,6 +148,7 @@ private:
 	// pipelines
 	void init_pipelines();
 	void init_background_pipelines();
+	void init_triangle_pipeline();
 	// ui
 	void init_imgui();
 

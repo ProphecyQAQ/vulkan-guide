@@ -30,6 +30,7 @@ public:
 
     VkPipeline build_pipeline(VkDevice device);
     
+    void set_pipeline_layout(VkPipelineLayout layout);
     void set_shader(VkShaderModule vertexShader, VkShaderModule fragmentShader);
     void set_input_topology(VkPrimitiveTopology topology);
     void set_polygon_mode(VkPolygonMode mode);

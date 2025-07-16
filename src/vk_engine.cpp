@@ -311,9 +311,13 @@ void VulkanEngine::init_vulkan()
 
     // Specifying used device features
     VkPhysicalDeviceFeatures deviceFeatures{};
+    VkPhysicalDeviceDynamicRenderingFeatures dynamicRenderingFeatures{};
+    dynamicRenderingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES;
+    dynamicRenderingFeatures.dynamicRendering = true;
     VkPhysicalDeviceBufferDeviceAddressFeatures bufferDeviceFeatures{};
     bufferDeviceFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
     bufferDeviceFeatures.bufferDeviceAddress = true;
+    bufferDeviceFeatures.pNext = &dynamicRenderingFeatures;
     VkPhysicalDeviceSynchronization2Features sync2Features{};
     sync2Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES;
     sync2Features.synchronization2 = true;
@@ -592,6 +596,7 @@ void VulkanEngine::init_descriptors()
 void VulkanEngine::init_pipelines()
 {
     init_background_pipelines();
+    init_triangle_pipeline();
 }
 
 void VulkanEngine::init_background_pipelines()
@@ -670,6 +675,62 @@ void VulkanEngine::init_background_pipelines()
         vkDestroyPipelineLayout(_device, _gradientPipelineLayout, nullptr);
         vkDestroyPipeline(_device, sky.pipeline, nullptr);
         vkDestroyPipeline(_device, gradient.pipeline, nullptr);
+    });
+}
+
+void VulkanEngine::init_triangle_pipeline()
+{
+    // load shaders
+    VkShaderModule triangleFragShader;
+	if (!vkutil::load_shader_module("../../shaders/colored_triangle.frag.spv", _device, &triangleFragShader)) {
+		fmt::print("[VulkanHealper] [init_triangle_pipeline] Error when building the triangle fragment shader module");
+	}
+	else {
+		fmt::print("[VulkanHealper] [init_triangle_pipeline] Triangle fragment shader succesfully loaded");
+	}
+
+	VkShaderModule triangleVertexShader;
+	if (!vkutil::load_shader_module("../../shaders/colored_triangle.vert.spv", _device, &triangleVertexShader)) {
+		fmt::print("[VulkanHealper] [init_triangle_pipeline] Error when building the triangle vertex shader module");
+	}
+	else {
+		fmt::print("[VulkanHealper] [init_triangle_pipeline] Triangle vertex shader succesfully loaded");
+	}
+
+    // pipe line create info
+    VkPipelineLayoutCreateInfo layoutCreateInfo = vkinit::pipeline_layout_create_info();
+    VK_CHECK(vkCreatePipelineLayout(_device, &layoutCreateInfo, nullptr, &_trianglePipelineLayout));
+
+    // create pipeline
+    PipelineBuilder builder;
+
+    builder.set_pipeline_layout(_trianglePipelineLayout);
+    builder.set_shader(triangleVertexShader, triangleFragShader);
+    // draw triangle
+    builder.set_input_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+    // fill triangle
+    builder.set_polygon_mode(VK_POLYGON_MODE_FILL);
+    // no backface culling
+    builder.set_cull_mode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE);
+    // no multisampling
+    builder.set_multisampling_none();
+    // no blending
+    builder.disable_blending();
+    // no depth test
+    builder.disable_depthtest();
+
+    // connect the image format we will draw into
+    builder.set_color_attachment_format(_drawImage.imageFormat);
+    builder.set_depth_format(VK_FORMAT_UNDEFINED);
+
+    // build pipeline
+    _trianglePipeline = builder.build_pipeline(_device);
+
+    vkDestroyShaderModule(_device, triangleFragShader, nullptr);
+    vkDestroyShaderModule(_device, triangleVertexShader, nullptr);
+    _mainDeletionQueue.push_function([&](){
+        vkDestroyPipelineLayout(_device, _trianglePipelineLayout, nullptr);
+        vkDestroyPipeline(_device, _trianglePipeline, nullptr);
     });
 }
 
@@ -824,6 +885,41 @@ void VulkanEngine::draw_background(VkCommandBuffer cmd)
 	vkCmdDispatch(cmd, std::ceil(_drawExtent.width / 16.0), std::ceil(_drawExtent.height / 16.0), 1);
 }
 
+void VulkanEngine::draw_geometry(VkCommandBuffer cmd)
+{
+    // connected to draw image
+    VkRenderingAttachmentInfo colorAttachment = vkinit::attachment_info(_drawImage.imageView, nullptr, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+
+    VkRenderingInfo renderInfo = vkinit::rendering_info(_drawExtent, &colorAttachment, nullptr);
+    vkCmdBeginRendering(cmd, &renderInfo);
+
+    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, _trianglePipeline);
+
+    // set dynamic viewport and scissor
+    VkViewport viewport = {};
+    viewport.x = 0.0f;
+    viewport.y = 0.0f;
+    viewport.width = static_cast<float>(_drawExtent.width);
+    viewport.height = static_cast<float>(_drawExtent.height);
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+
+    vkCmdSetViewport(cmd, 0, 1, &viewport);
+
+    VkRect2D scissor = {};
+    scissor.offset.x = 0;
+	scissor.offset.y = 0;
+	scissor.extent.width = _drawExtent.width;
+	scissor.extent.height = _drawExtent.height;
+
+    vkCmdSetScissor(cmd, 0, 1, &scissor);
+
+    // launch draw cmd
+    vkCmdDraw(cmd, 3, 1, 0, 0);
+
+    vkCmdEndRendering(cmd);
+}
+
 void VulkanEngine::draw()
 { 
     FrameData& currentFrame = get_current_frame();
@@ -848,14 +944,26 @@ void VulkanEngine::draw()
     VkCommandBufferBeginInfo cmdBeginInfo = vkinit::command_buffer_begin_info(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
     VK_CHECK(vkBeginCommandBuffer(cmd, &cmdBeginInfo));
 
-    // transition the draw image into writeable image
-    vkutil::transition_image(cmd, _drawImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+    // draw background
+    {
+        // transition the draw image into writeable image
+        vkutil::transition_image(cmd, _drawImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 
-    // draw image
-    draw_background(cmd);
+        // draw image
+        draw_background(cmd);
+    }
+
+    // draw gemotroy
+    {
+        // transition the draw image into color attachment layout
+        vkutil::transition_image(cmd, _drawImage.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+
+        // draw geometry
+        draw_geometry(cmd);
+    }
 
     // transition the draw image and swapchain image into transfer layout
-    vkutil::transition_image(cmd, _drawImage.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+    vkutil::transition_image(cmd, _drawImage.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
     vkutil::transition_image(cmd, _swapChainImage[swapchainImageIndex], VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
     // copy draw image to swapchain image

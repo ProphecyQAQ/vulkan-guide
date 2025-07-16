@@ -91,7 +91,6 @@ VkPipeline PipelineBuilder::build_pipeline(VkDevice device)
 
     pipelineInfo.stageCount = (uint32_t)_shaderStages.size();
     pipelineInfo.pStages = _shaderStages.data();
-    pipelineInfo.pStages = _shaderStages.data();
     pipelineInfo.pVertexInputState = &_vertexInputInfo;
     pipelineInfo.pInputAssemblyState = &_inputAssembly;
     pipelineInfo.pViewportState = &viewportState;
@@ -119,12 +118,17 @@ VkPipeline PipelineBuilder::build_pipeline(VkDevice device)
     return pipeline;
 }
 
+void PipelineBuilder::set_pipeline_layout(VkPipelineLayout layout)
+{
+    _pipelineLayout = layout;
+}
+
 void PipelineBuilder::set_shader(VkShaderModule vertexShader, VkShaderModule fragmentShader)
 {
     _shaderStages.clear();
 
-    _shaderStages.push_back(vkinit::pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT, vertexShader, "vertex"));
-    _shaderStages.push_back(vkinit::pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShader, "fragment"));
+    _shaderStages.push_back(vkinit::pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT, vertexShader));
+    _shaderStages.push_back(vkinit::pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShader));
 }
 
 void PipelineBuilder::set_input_topology(VkPrimitiveTopology topology)
