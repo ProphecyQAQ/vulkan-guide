@@ -74,7 +74,7 @@ struct Vertex {
 };
 
 // holds the resources needed for a mesh
-struct GPUMeshBuffer {
+struct GPUMeshBuffers {
     AllocatedBuffer vertexBuffer;
     AllocatedBuffer indexBuffer;
     VkDeviceAddress vertexBufferAddress;

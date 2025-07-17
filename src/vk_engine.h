@@ -130,8 +130,12 @@ public:
 	// Pipeline
 	VkPipeline _gradientPipeline;
 	VkPipelineLayout _gradientPipelineLayout;
-	VkPipelineLayout _trianglePipelineLayout;
 	VkPipeline _trianglePipeline;
+	VkPipelineLayout _trianglePipelineLayout;
+	VkPipeline _meshPipeline;
+	VkPipelineLayout _meshPipelineLayout;
+
+	GPUMeshBuffers rectangle;
 
 	// immediate submit structures
 	VkFence _immFence;
@@ -149,8 +153,11 @@ private:
 	void init_pipelines();
 	void init_background_pipelines();
 	void init_triangle_pipeline();
+	void init_mesh_pipeline();
 	// ui
 	void init_imgui();
+	// default data
+	void init_default_data();
 
 	bool check_validation_support();
 	QueueFamilyIndices find_queue_families(VkPhysicalDevice device);
@@ -168,7 +175,7 @@ private:
 	AllocatedBuffer create_buffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
 	void destroy_buffer(const AllocatedBuffer& buffer);
 
-	GPUMeshBuffer uploadMesh(std::span<uint32_t> indices, std::span<Vertex> vertices);
+	GPUMeshBuffers uploadMesh(std::span<uint32_t> indices, std::span<Vertex> vertices);
 private:
 	DeletionQueue _mainDeletionQueue;
 
