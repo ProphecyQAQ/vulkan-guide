@@ -896,6 +896,9 @@ void VulkanEngine::init_default_data()
 		destroy_buffer(rectangle.indexBuffer);
 		destroy_buffer(rectangle.vertexBuffer);
 	});
+
+    // load a basic mesh from gltf file
+    testMeshes = loadGltfMeshes(this,"..\\..\\assets\\basicmesh.glb").value();
 }
 
 void VulkanEngine::immediate_submit(std::function<void(VkCommandBuffer cmd)>&& function)
@@ -1031,6 +1034,18 @@ void VulkanEngine::draw_geometry(VkCommandBuffer cmd)
         vkCmdBindIndexBuffer(cmd, rectangle.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
         vkCmdDrawIndexed(cmd, 6, 1, 0, 0, 0);
+    }
+
+    // draw monkey head
+    {
+        GPUDrawPushConstant pushConstants{};
+        pushConstants.worldMatrix = glm::mat4{1.0f};
+        pushConstants.vertexBuffer = testMeshes[2]->meshBuffers.vertexBufferAddress;
+
+        vkCmdPushConstants(cmd, _meshPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GPUDrawPushConstant), &pushConstants);
+        vkCmdBindIndexBuffer(cmd, testMeshes[2]->meshBuffers.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+
+        vkCmdDrawIndexed(cmd, testMeshes[2]->surfaces[0].count, 1, testMeshes[2]->surfaces[0].startIndex, 0, 0);
     }
 
     vkCmdEndRendering(cmd);

@@ -7,6 +7,7 @@
 #include <vk_initializers.h>
 #include <vk_descriptors.h>
 #include <vk_healper.h>
+#include <vk_loader.h>
 #include <vk_pipelines.h>
 
 #include "imgui.h"
@@ -95,6 +96,7 @@ public:
 	
 	void immediate_submit(std::function<void(VkCommandBuffer cmd)>&& function);
 	void draw_imgui(VkCommandBuffer cmd, VkImageView targetImageView);
+	GPUMeshBuffers uploadMesh(std::span<uint32_t> indices, std::span<Vertex> vertices);
 public:
 	std::vector<const char*> _validationLayer;
 	std::vector<const char*> _deviceExtensions;
@@ -174,11 +176,11 @@ private:
 	*/
 	AllocatedBuffer create_buffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
 	void destroy_buffer(const AllocatedBuffer& buffer);
-
-	GPUMeshBuffers uploadMesh(std::span<uint32_t> indices, std::span<Vertex> vertices);
 private:
 	DeletionQueue _mainDeletionQueue;
 
 	std::vector<ComputeEffect> backgroundEffects;
 	int currentBackgroundEffect{0};
+
+	std::vector<std::shared_ptr<MeshAsset>> testMeshes;
 };
