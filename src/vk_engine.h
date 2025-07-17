@@ -160,6 +160,13 @@ private:
 	
 	VkExtent2D choose_swap_extent(const VkSurfaceCapabilitiesKHR& capabilities);
 
+	/**
+	* @PARAM allocSize: size of the buffer to allocate
+	* @PARAM usage: usage flags for the buffer
+	* @PARAM memoryUsage: control where VMA will put our buffer
+	*/
+	AllocatedBuffer create_buffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
+	void destroy_buffer(const AllocatedBuffer& buffer);
 private:
 	DeletionQueue _mainDeletionQueue;
 
