@@ -64,3 +64,24 @@ struct AllocatedBuffer {
     VmaAllocation allocation;
     VmaAllocationInfo allocationInfo;
 };
+
+struct Vertex {
+    glm::vec3 position;
+    float uv_x;
+    glm::vec3 normal;
+    float uv_y;
+    glm::vec4 color;
+};
+
+// holds the resources needed for a mesh
+struct GPUMeshBuffer {
+    AllocatedBuffer vertexBuffer;
+    AllocatedBuffer indexBuffer;
+    VkDeviceAddress vertexBufferAddress;
+};
+
+// push constants for our mesh object draws
+struct GPUDrawPushConstant {
+    glm::mat4 worldMatrix;
+    VkDeviceAddress vertexBuffer;
+};

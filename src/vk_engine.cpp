@@ -1104,3 +1104,58 @@ void VulkanEngine::destroy_buffer(const AllocatedBuffer& buffer)
 {
     vmaDestroyBuffer(_allocator, buffer.buffer, buffer.allocation);
 }
+
+GPUMeshBuffer VulkanEngine::uploadMesh(std::span<uint32_t> indices, std::span<Vertex> vertices)
+{
+    size_t vertexBufferSize = vertices.size() * sizeof(Vertex);
+    size_t indexBufferSize = indices.size() * sizeof(uint32_t);
+
+    GPUMeshBuffer surface;
+
+    // create vertex buffer
+    surface.vertexBuffer = create_buffer(
+        vertexBufferSize,
+        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+        VMA_MEMORY_USAGE_GPU_ONLY);
+
+    // find vertex buffer address
+    VkBufferDeviceAddressInfo vertexAddressInfo = {.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO, .buffer = surface.vertexBuffer.buffer};
+    surface.vertexBufferAddress = vkGetBufferDeviceAddress(_device, &vertexAddressInfo);
+
+    surface.indexBuffer = create_buffer(
+        indexBufferSize,
+        VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+        VMA_MEMORY_USAGE_GPU_ONLY);
+
+
+    // need a staging buffer that cpu writable, and execute cpoy command to copy data from staging buffer to gpu buffer
+    AllocatedBuffer staging = create_buffer(vertexBufferSize + indexBufferSize, 
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
+
+    void *data = staging.allocation->GetMappedData();
+    // copy vertex buffer
+    memcpy(data, vertices.data(), vertexBufferSize);
+    // copy index buffer
+    memcpy((uint8_t*)data + vertexBufferSize, indices.data(), indexBufferSize);
+
+    immediate_submit([&](VkCommandBuffer cmd)
+    {
+        VkBufferCopy vertexCopy{};
+        vertexCopy.srcOffset = 0;
+        vertexCopy.dstOffset = 0;
+        vertexCopy.size = vertexBufferSize;
+
+        vkCmdCopyBuffer(cmd, staging.buffer, surface.vertexBuffer.buffer, 1, &vertexCopy);
+
+        VkBufferCopy indexCopy{};
+        indexCopy.srcOffset = vertexBufferSize;
+        indexCopy.dstOffset = 0;
+        indexCopy.size = indexBufferSize;
+
+        vkCmdCopyBuffer(cmd, staging.buffer, surface.indexBuffer.buffer, 1, &indexCopy);
+    });
+
+    destroy_buffer(staging);
+
+    return surface;
+}

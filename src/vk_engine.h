@@ -167,6 +167,8 @@ private:
 	*/
 	AllocatedBuffer create_buffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
 	void destroy_buffer(const AllocatedBuffer& buffer);
+
+	GPUMeshBuffer uploadMesh(std::span<uint32_t> indices, std::span<Vertex> vertices);
 private:
 	DeletionQueue _mainDeletionQueue;
 
