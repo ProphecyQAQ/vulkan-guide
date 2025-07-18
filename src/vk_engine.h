@@ -133,12 +133,8 @@ public:
 	// Pipeline
 	VkPipeline _gradientPipeline;
 	VkPipelineLayout _gradientPipelineLayout;
-	VkPipeline _trianglePipeline;
-	VkPipelineLayout _trianglePipelineLayout;
 	VkPipeline _meshPipeline;
 	VkPipelineLayout _meshPipelineLayout;
-
-	GPUMeshBuffers rectangle;
 
 	// immediate submit structures
 	VkFence _immFence;
