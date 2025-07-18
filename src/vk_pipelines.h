@@ -36,9 +36,14 @@ public:
     void set_polygon_mode(VkPolygonMode mode);
     void set_cull_mode(VkCullModeFlags cullMode, VkFrontFace frontFace);
     void set_multisampling_none();
+
     void disable_blending();
+    void enable_blend_additive();
+    void enable_blend_alphablend();
+
     void set_color_attachment_format(VkFormat format);
     void set_depth_format(VkFormat format);
+
     void enable_depthtest(bool depthWriteEnable, VkCompareOp op);
     void disable_depthtest();
 };
