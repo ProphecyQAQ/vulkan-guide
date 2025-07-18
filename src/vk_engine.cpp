@@ -4,6 +4,8 @@
 #include <SDL.h>
 #include <SDL_vulkan.h>
 
+#include <glm/gtx/transform.hpp>
+
 #include <vk_initializers.h>
 #include <vk_images.h>
 #include <vk_types.h>
@@ -466,35 +468,66 @@ void VulkanEngine::init_swapchain()
         1
     };
 
-    // set image format
-    _drawImage.imageFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
-    _drawImage.imageExtent = drawImageExtent;
+    // create draw image
+    {
+        // set image format
+        _drawImage.imageFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
+        _drawImage.imageExtent = drawImageExtent;
 
-    VkImageUsageFlags drawImageUsage;
-    drawImageUsage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | 
-                     VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
-                     VK_IMAGE_USAGE_STORAGE_BIT |
-                     VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        VkImageUsageFlags drawImageUsage;
+        drawImageUsage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | 
+                        VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+                        VK_IMAGE_USAGE_STORAGE_BIT |
+                        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    VkImageCreateInfo imageCreateInfo = vkinit::image_create_info(_drawImage.imageFormat, drawImageUsage, drawImageExtent);
+        VkImageCreateInfo imageCreateInfo = vkinit::image_create_info(_drawImage.imageFormat, drawImageUsage, drawImageExtent);
 
-    // need allocat it from gpu local memoty
-    VmaAllocationCreateInfo imageAllocationInfo{};
-    imageAllocationInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
-    imageAllocationInfo.requiredFlags = VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        // need allocat it from gpu local memoty
+        VmaAllocationCreateInfo imageAllocationInfo{};
+        imageAllocationInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+        imageAllocationInfo.requiredFlags = VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    // allocate and create image
-    vmaCreateImage(_allocator, &imageCreateInfo, &imageAllocationInfo, &_drawImage.image, &_drawImage.allocation, nullptr);
+        // allocate and create image
+        vmaCreateImage(_allocator, &imageCreateInfo, &imageAllocationInfo, &_drawImage.image, &_drawImage.allocation, nullptr);
 
-    // build image view
-    VkImageViewCreateInfo imageViewInfo = vkinit::imageview_create_info(_drawImage.imageFormat, _drawImage.image, VK_IMAGE_ASPECT_COLOR_BIT);
-    VK_CHECK(vkCreateImageView(_device, &imageViewInfo, nullptr, &_drawImage.imageView));
+        // build image view
+        VkImageViewCreateInfo imageViewInfo = vkinit::imageview_create_info(_drawImage.imageFormat, _drawImage.image, VK_IMAGE_ASPECT_COLOR_BIT);
+        VK_CHECK(vkCreateImageView(_device, &imageViewInfo, nullptr, &_drawImage.imageView));
 
-    // add to deletion queue
-    _mainDeletionQueue.push_function([=]() {
-        vmaDestroyImage(_allocator, _drawImage.image, _drawImage.allocation);
-        vkDestroyImageView(_device, _drawImage.imageView, nullptr);
-    });
+        // add to deletion queue
+        _mainDeletionQueue.push_function([=]() {
+            vmaDestroyImage(_allocator, _drawImage.image, _drawImage.allocation);
+            vkDestroyImageView(_device, _drawImage.imageView, nullptr);
+        });
+    }
+
+    // create depth image
+    {   
+        _depthImage.imageFormat = VK_FORMAT_D32_SFLOAT;
+        _depthImage.imageExtent = drawImageExtent;
+        VkImageUsageFlags usages{};
+        usages |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+
+        VkImageCreateInfo imageCreateInfo = vkinit::image_create_info(_depthImage.imageFormat, usages, drawImageExtent);
+
+        // need allocat it from gpu local memoty
+        VmaAllocationCreateInfo imageAllocationInfo{};
+        imageAllocationInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+        imageAllocationInfo.requiredFlags = VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+        // allocate and create image
+        vmaCreateImage(_allocator, &imageCreateInfo, &imageAllocationInfo, &_depthImage.image, &_depthImage.allocation, nullptr);
+
+        // build image view
+        VkImageViewCreateInfo viewCreateInfo = vkinit::imageview_create_info(_depthImage.imageFormat, _depthImage.image, VK_IMAGE_ASPECT_DEPTH_BIT);
+        VK_CHECK(vkCreateImageView(_device, &viewCreateInfo, nullptr, &_depthImage.imageView));
+
+        _mainDeletionQueue.push_function([=]()
+        {
+            vkDestroyImageView(_device, _depthImage.imageView, nullptr);
+            vmaDestroyImage(_allocator, _depthImage.image, _depthImage.allocation);
+        });
+    }
 }   
 
 void VulkanEngine::init_commands()
@@ -726,7 +759,7 @@ void VulkanEngine::init_triangle_pipeline()
 
     // connect the image format we will draw into
     builder.set_color_attachment_format(_drawImage.imageFormat);
-    builder.set_depth_format(VK_FORMAT_UNDEFINED);
+    builder.set_depth_format(_depthImage.imageFormat);
 
     // build pipeline
     _trianglePipeline = builder.build_pipeline(_device);
@@ -782,11 +815,12 @@ void VulkanEngine::init_mesh_pipeline()
 	pipelineBuilder.set_multisampling_none();
 	//no blending
 	pipelineBuilder.disable_blending();
-	pipelineBuilder.disable_depthtest();
+	//pipelineBuilder.disable_depthtest();
+    pipelineBuilder.enable_depthtest(VK_TRUE, VK_COMPARE_OP_GREATER_OR_EQUAL);
 
     //connect the image format we will draw into, from draw image
 	pipelineBuilder.set_color_attachment_format(_drawImage.imageFormat);
-	pipelineBuilder.set_depth_format(VK_FORMAT_UNDEFINED);
+	pipelineBuilder.set_depth_format(_depthImage.imageFormat);
 
 	//finally build the pipeline
 	_meshPipeline = pipelineBuilder.build_pipeline(_device);
@@ -948,6 +982,12 @@ void VulkanEngine::cleanup()
             _frameData[i]._deletionQueue.flush();
         }
 
+        // clean up mesh
+        for (auto& mesh : testMeshes) {
+            destroy_buffer(mesh->meshBuffers.indexBuffer);
+            destroy_buffer(mesh->meshBuffers.vertexBuffer);
+        }
+
         _mainDeletionQueue.flush();
 
         vkDestroySwapchainKHR(_device, _swapChain, nullptr);
@@ -991,8 +1031,9 @@ void VulkanEngine::draw_geometry(VkCommandBuffer cmd)
 {
     // connected to draw image
     VkRenderingAttachmentInfo colorAttachment = vkinit::attachment_info(_drawImage.imageView, nullptr, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    VkRenderingAttachmentInfo depthAttachment = vkinit::depth_attachment_info(_depthImage.imageView, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
 
-    VkRenderingInfo renderInfo = vkinit::rendering_info(_drawExtent, &colorAttachment, nullptr);
+    VkRenderingInfo renderInfo = vkinit::rendering_info(_drawExtent, &colorAttachment, &depthAttachment);
     vkCmdBeginRendering(cmd, &renderInfo);
 
     // draw triangle
@@ -1041,6 +1082,15 @@ void VulkanEngine::draw_geometry(VkCommandBuffer cmd)
         GPUDrawPushConstant pushConstants{};
         pushConstants.worldMatrix = glm::mat4{1.0f};
         pushConstants.vertexBuffer = testMeshes[2]->meshBuffers.vertexBufferAddress;
+
+        
+        glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3{ 0,0,-5 });
+        // camera projection
+        glm::mat4 projection = glm::perspective(glm::radians(70.f), (float)_drawExtent.width/(float)_drawExtent.height, 10000.f, 0.1f);
+        // invert the Y direction on projection matrix so that we are more similar
+	    // to opengl and gltf axis
+        projection[1][1] *= -1;
+        pushConstants.worldMatrix = projection * view;
 
         vkCmdPushConstants(cmd, _meshPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GPUDrawPushConstant), &pushConstants);
         vkCmdBindIndexBuffer(cmd, testMeshes[2]->meshBuffers.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
