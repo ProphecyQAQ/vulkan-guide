@@ -117,11 +117,11 @@ public:
 	// presentation
 	VkSurfaceKHR _surface;
 	VkQueue _presentQueue;
-	VkSwapchainKHR _swapChain;
-	std::vector<VkImage> _swapChainImage;
-	std::vector<VkImageView> _swapChainImageView;
-	VkFormat _swapChainImageFormat;
-	VkExtent2D _swapChainExtent;
+	VkSwapchainKHR _swapchain;
+	std::vector<VkImage> _swapchainImage;
+	std::vector<VkImageView> _swapchainImageView;
+	VkFormat _swapchainImageFormat;
+	VkExtent2D _swapchainExtent;
 
 	// draw resource
 	AllocatedImage _drawImage;
@@ -166,6 +166,9 @@ private:
 	
 	VkExtent2D choose_swap_extent(const VkSurfaceCapabilitiesKHR& capabilities);
 
+	void create_swapchain();
+	void destroy_swapchain();
+	void resize_swapchain();
 	/**
 	* @PARAM allocSize: size of the buffer to allocate
 	* @PARAM usage: usage flags for the buffer
@@ -180,4 +183,5 @@ private:
 	int currentBackgroundEffect{0};
 
 	std::vector<std::shared_ptr<MeshAsset>> testMeshes;
+	bool resize_requested;
 };
