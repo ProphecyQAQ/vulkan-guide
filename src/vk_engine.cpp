@@ -523,21 +523,10 @@ void VulkanEngine::init_descriptors()
     // allocate a descriptor set for our draw image
     _drawImageDescriptors = globalDescriptorAllocator.allocate(_device, _drawImageDescriptorLayout);
 
-    VkDescriptorImageInfo imageInfo{};
-    imageInfo.imageView = _drawImage.imageView;
-    imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-    
-    // Structure specifying the parameters of a descriptor set write operation
-    VkWriteDescriptorSet drawImageWrite{};
-    drawImageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    drawImageWrite.pNext = nullptr;
-    drawImageWrite.pImageInfo = &imageInfo;
-    drawImageWrite.dstBinding = 0;
-    drawImageWrite.dstSet = _drawImageDescriptors;
-    drawImageWrite.descriptorCount = 1;
-    drawImageWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-
-    vkUpdateDescriptorSets(_device, 1, &drawImageWrite, 0, nullptr);
+    // write the descriptor set
+    DescriptorWriter writer;
+    writer.write_image(0, _drawImage.imageView, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+    writer.update_set(_device, _drawImageDescriptors);
 
     _mainDeletionQueue.push_function([&]()
     {
