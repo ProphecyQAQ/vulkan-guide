@@ -57,6 +57,7 @@ struct FrameData {
 	VkFence _renderFence;
 
 	DeletionQueue _deletionQueue;
+	DescriptorAllocatorGrowable _frameDescriptors;
 };
 
 constexpr unsigned int FRAME_OVERLAP = 2;
@@ -177,6 +178,9 @@ private:
 	AllocatedBuffer create_buffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
 	void destroy_buffer(const AllocatedBuffer& buffer);
 private:
+	GPUSceneData _sceneData;
+	VkDescriptorSetLayout _gpuSceneDataDescriptorLayout;
+
 	DeletionQueue _mainDeletionQueue;
 
 	std::vector<ComputeEffect> backgroundEffects;

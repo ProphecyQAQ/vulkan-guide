@@ -528,6 +528,25 @@ void VulkanEngine::init_descriptors()
     writer.write_image(0, _drawImage.imageView, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
     writer.update_set(_device, _drawImageDescriptors);
 
+    // init frame data desriptor
+    for (int i = 0; i < FRAME_OVERLAP; i ++)
+    {
+        // create a descriptor pool for each frame
+        std::vector<DescriptorAllocatorGrowable::PoolSizeRatio> frame_size = {
+            { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 3 },
+            { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3 },
+            { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3 },
+            { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4 },
+        };
+
+        _frameData[i]._frameDescriptors = DescriptorAllocatorGrowable{};
+        _frameData[i]._frameDescriptors.init(_device, 1000, frame_size);
+
+        _mainDeletionQueue.push_function([&, i](){
+            _frameData[i]._frameDescriptors.destroy_pools(_device);
+        });
+    }
+
     _mainDeletionQueue.push_function([&]()
     {
         globalDescriptorAllocator.destroy_pool(_device);
@@ -948,6 +967,31 @@ void VulkanEngine::draw_background(VkCommandBuffer cmd)
 
 void VulkanEngine::draw_geometry(VkCommandBuffer cmd)
 {
+    // create gpu scene data
+    {
+        DescriptorLayoutBuilder builder;
+        builder.add_binding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+        _gpuSceneDataDescriptorLayout = builder.build(_device, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+
+        // allocate uniform buffer for scene data
+        AllocatedBuffer gpuSceneDataBuffer = create_buffer(sizeof(GPUSceneData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+        // add destroy
+        get_current_frame()._deletionQueue.push_function([=]() {
+            destroy_buffer(gpuSceneDataBuffer);
+        });
+
+        // write the buffer
+        GPUSceneData *sceneUniformData = (GPUSceneData*)gpuSceneDataBuffer.allocation->GetMappedData();
+        *sceneUniformData = _sceneData;
+
+        // create descriptor set that binds that buffer and update it
+        VkDescriptorSet globalDescriptor = get_current_frame()._frameDescriptors.allocate(_device, _gpuSceneDataDescriptorLayout, nullptr);
+
+        DescriptorWriter writer;
+        writer.write_buffer(0, gpuSceneDataBuffer.buffer, 0, sizeof(GPUSceneData), VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+        writer.update_set(_device, globalDescriptor);
+    }
+
     // connected to draw image
     VkRenderingAttachmentInfo colorAttachment = vkinit::attachment_info(_drawImage.imageView, nullptr, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
     VkRenderingAttachmentInfo depthAttachment = vkinit::depth_attachment_info(_depthImage.imageView, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
@@ -1005,6 +1049,7 @@ void VulkanEngine::draw()
     // wait until the gpu has finished rendering the last frame
     VK_CHECK(vkWaitForFences(_device, 1, &currentFrame._renderFence, true, UINT64_MAX));
     currentFrame._deletionQueue.flush();
+    currentFrame._frameDescriptors.clear_pools(_device);
     VK_CHECK(vkResetFences(_device, 1, &currentFrame._renderFence));
 
     _drawExtent.width = _drawImage.imageExtent.width;
