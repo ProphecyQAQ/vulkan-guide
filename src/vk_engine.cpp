@@ -512,6 +512,13 @@ void VulkanEngine::init_descriptors()
     };
 
     globalDescriptorAllocator.init_pool(_device, 10, sizes);
+    
+    // make descriptor layout for gpu scene data
+    {
+        DescriptorLayoutBuilder builder;
+        builder.add_binding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+        _gpuSceneDataDescriptorLayout = builder.build(_device, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+    }
 
     // make descriptor layout for our compute draw
     {
@@ -967,31 +974,6 @@ void VulkanEngine::draw_background(VkCommandBuffer cmd)
 
 void VulkanEngine::draw_geometry(VkCommandBuffer cmd)
 {
-    // create gpu scene data
-    {
-        DescriptorLayoutBuilder builder;
-        builder.add_binding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-        _gpuSceneDataDescriptorLayout = builder.build(_device, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
-
-        // allocate uniform buffer for scene data
-        AllocatedBuffer gpuSceneDataBuffer = create_buffer(sizeof(GPUSceneData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-        // add destroy
-        get_current_frame()._deletionQueue.push_function([=]() {
-            destroy_buffer(gpuSceneDataBuffer);
-        });
-
-        // write the buffer
-        GPUSceneData *sceneUniformData = (GPUSceneData*)gpuSceneDataBuffer.allocation->GetMappedData();
-        *sceneUniformData = _sceneData;
-
-        // create descriptor set that binds that buffer and update it
-        VkDescriptorSet globalDescriptor = get_current_frame()._frameDescriptors.allocate(_device, _gpuSceneDataDescriptorLayout, nullptr);
-
-        DescriptorWriter writer;
-        writer.write_buffer(0, gpuSceneDataBuffer.buffer, 0, sizeof(GPUSceneData), VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-        writer.update_set(_device, globalDescriptor);
-    }
-
     // connected to draw image
     VkRenderingAttachmentInfo colorAttachment = vkinit::attachment_info(_drawImage.imageView, nullptr, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
     VkRenderingAttachmentInfo depthAttachment = vkinit::depth_attachment_info(_depthImage.imageView, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
@@ -1037,6 +1019,27 @@ void VulkanEngine::draw_geometry(VkCommandBuffer cmd)
         vkCmdBindIndexBuffer(cmd, testMeshes[2]->meshBuffers.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
         vkCmdDrawIndexed(cmd, testMeshes[2]->surfaces[0].count, 1, testMeshes[2]->surfaces[0].startIndex, 0, 0);
+    }
+
+    // create gpu scene data
+    {
+        // allocate uniform buffer for scene data
+        AllocatedBuffer gpuSceneDataBuffer = create_buffer(sizeof(GPUSceneData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+        // add destroy
+        get_current_frame()._deletionQueue.push_function([=]() {
+            destroy_buffer(gpuSceneDataBuffer);
+        });
+
+        // write the buffer
+        GPUSceneData *sceneUniformData = (GPUSceneData*)gpuSceneDataBuffer.allocation->GetMappedData();
+        *sceneUniformData = _sceneData;
+
+        // create descriptor set that binds that buffer and update it
+        VkDescriptorSet globalDescriptor = get_current_frame()._frameDescriptors.allocate(_device, _gpuSceneDataDescriptorLayout, nullptr);
+
+        DescriptorWriter writer;
+        writer.write_buffer(0, gpuSceneDataBuffer.buffer, sizeof(GPUSceneData), 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+        writer.update_set(_device, globalDescriptor);
     }
 
     vkCmdEndRendering(cmd);
