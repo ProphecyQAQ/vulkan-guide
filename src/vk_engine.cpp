@@ -782,6 +782,50 @@ void VulkanEngine::init_default_data()
 {
     // load a basic mesh from gltf file
     testMeshes = loadGltfMeshes(this,"..\\..\\assets\\basicmesh.glb").value();
+
+    // init default image data
+    // 3 default textures, white, grey, black. 1 pixel each
+    uint32_t white = glm::packUnorm4x8(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+    _whiteImage = create_image((void*)&white, VkExtent3D{1,1,1}, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT);
+
+    uint32_t black = glm::packUnorm4x8(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+    _blackImage = create_image((void*)&black, VkExtent3D{1,1,1}, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT);
+
+    uint32_t grey = glm::packUnorm4x8(glm::vec4(0.66f, 0.66f, 0.66f, 1.0f));
+    _greyImage = create_image((void*)&grey, VkExtent3D{1,1,1}, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT);
+
+    // checkboard image
+    std::array<uint32_t, 16*16> pixels;
+    for (int i = 0; i < 16; i ++)
+    {
+        for (int j = 0; j < 16; j ++)
+        {
+            pixels[i * 16 + j] = ((i + j) % 2 == 0) ? white : black;
+        }
+    }
+    _errorCheckerboardImage = create_image((void*)pixels.data(), VkExtent3D{16,16,1}, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT);
+
+    // create default sampler
+    VkSamplerCreateInfo samplerCreateInfo{.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
+    samplerCreateInfo.magFilter = VK_FILTER_LINEAR;
+    samplerCreateInfo.minFilter = VK_FILTER_LINEAR;
+
+    VK_CHECK(vkCreateSampler(_device, &samplerCreateInfo, nullptr, &_defaultSamplerLinear));
+
+    samplerCreateInfo.magFilter = VK_FILTER_NEAREST;
+    samplerCreateInfo.minFilter = VK_FILTER_NEAREST;
+
+    VK_CHECK(vkCreateSampler(_device, &samplerCreateInfo, nullptr, &_defaultSamplerNearest));
+
+    _mainDeletionQueue.push_function([&](){
+        destroy_image(_whiteImage);
+        destroy_image(_blackImage);
+        destroy_image(_greyImage);
+        destroy_image(_errorCheckerboardImage);
+
+        vkDestroySampler(_device, _defaultSamplerLinear, nullptr);
+        vkDestroySampler(_device, _defaultSamplerNearest, nullptr);
+    });
 }
 
 void VulkanEngine::create_swapchain()

@@ -182,6 +182,16 @@ private:
 	AllocatedImage create_image(void *data, VkExtent3D size, VkFormat format, VkImageUsageFlags usage, bool mipmapped = false);
 	void destroy_image(const AllocatedImage& image);
 private:
+
+	// default image
+	AllocatedImage _whiteImage;
+	AllocatedImage _blackImage;
+	AllocatedImage _greyImage;
+	AllocatedImage _errorCheckerboardImage;
+
+	VkSampler _defaultSamplerLinear;
+	VkSampler _defaultSamplerNearest;
+
 	GPUSceneData _sceneData;
 	VkDescriptorSetLayout _gpuSceneDataDescriptorLayout;
 
