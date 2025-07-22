@@ -130,6 +130,7 @@ public:
 	VkExtent2D _drawExtent;
 	VkDescriptorSet _drawImageDescriptors;
 	VkDescriptorSetLayout _drawImageDescriptorLayout;
+	VkDescriptorSetLayout _singleImageDescriptorLayout;
 
 	// Pipeline
 	VkPipeline _gradientPipeline;

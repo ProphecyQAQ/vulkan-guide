@@ -527,6 +527,13 @@ void VulkanEngine::init_descriptors()
         _drawImageDescriptorLayout = builder.build(_device, VK_SHADER_STAGE_COMPUTE_BIT);
     }
 
+    // make descriptor layout for our compute draw
+    {
+        DescriptorLayoutBuilder builder;
+        builder.add_binding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+        _singleImageDescriptorLayout = builder.build(_device, VK_SHADER_STAGE_FRAGMENT_BIT);
+    }
+
     // allocate a descriptor set for our draw image
     _drawImageDescriptors = globalDescriptorAllocator.allocate(_device, _drawImageDescriptorLayout);
 
@@ -557,6 +564,7 @@ void VulkanEngine::init_descriptors()
     _mainDeletionQueue.push_function([&]()
     {
         globalDescriptorAllocator.destroy_pool(_device);
+        vkDestroyDescriptorSetLayout(_device, _singleImageDescriptorLayout, nullptr);
         vkDestroyDescriptorSetLayout(_device, _drawImageDescriptorLayout, nullptr);
         vkDestroyDescriptorSetLayout(_device, _gpuSceneDataDescriptorLayout, nullptr);
     }
@@ -653,7 +661,7 @@ void VulkanEngine::init_background_pipelines()
 void VulkanEngine::init_mesh_pipeline()
 {
     VkShaderModule triangleFragShader;
-	if (!vkutil::load_shader_module("../../shaders/colored_triangle.frag.spv", _device, &triangleFragShader)) {
+	if (!vkutil::load_shader_module("../../shaders/tex_image.frag.spv", _device, &triangleFragShader)) {
 		fmt::print("Error when building the triangle fragment shader module");
 	}
 	else {
@@ -676,6 +684,8 @@ void VulkanEngine::init_mesh_pipeline()
     VkPipelineLayoutCreateInfo layoutCreateInfo = vkinit::pipeline_layout_create_info();
     layoutCreateInfo.pPushConstantRanges = &pushConstantRange;
     layoutCreateInfo.pushConstantRangeCount = 1;
+    layoutCreateInfo.pSetLayouts = &_singleImageDescriptorLayout;
+    layoutCreateInfo.setLayoutCount = 1;
     
     VK_CHECK(vkCreatePipelineLayout(_device, &layoutCreateInfo, nullptr, &_meshPipelineLayout));
 
@@ -692,8 +702,8 @@ void VulkanEngine::init_mesh_pipeline()
 	//no multisampling
 	pipelineBuilder.set_multisampling_none();
 	//no blending
-	//pipelineBuilder.disable_blending();
-    pipelineBuilder.enable_blend_additive();
+	pipelineBuilder.disable_blending();
+    //pipelineBuilder.enable_blend_additive();
 	//pipelineBuilder.disable_depthtest();
     pipelineBuilder.enable_depthtest(VK_TRUE, VK_COMPARE_OP_GREATER_OR_EQUAL);
 
@@ -796,11 +806,12 @@ void VulkanEngine::init_default_data()
 
     // checkboard image
     std::array<uint32_t, 16*16> pixels;
+    uint32_t magenta = glm::packUnorm4x8(glm::vec4(1, 0, 1, 1));
     for (int i = 0; i < 16; i ++)
     {
         for (int j = 0; j < 16; j ++)
         {
-            pixels[i * 16 + j] = ((i + j) % 2 == 0) ? white : black;
+            pixels[i * 16 + j] = ((i % 2) ^ (j % 2)) ? magenta : black;
         }
     }
     _errorCheckerboardImage = create_image((void*)pixels.data(), VkExtent3D{16,16,1}, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT);
@@ -1048,6 +1059,16 @@ void VulkanEngine::draw_geometry(VkCommandBuffer cmd)
         scissor.extent.height = _drawExtent.height;
 
         vkCmdSetScissor(cmd, 0, 1, &scissor);
+
+        // bind texture
+        VkDescriptorSet imageSet = get_current_frame()._frameDescriptors.allocate(_device, _singleImageDescriptorLayout, nullptr);
+        {
+            DescriptorWriter writer;
+            writer.write_image(0, _errorCheckerboardImage.imageView, _defaultSamplerNearest, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+            writer.update_set(_device, imageSet);
+        }
+        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, _meshPipelineLayout, 0, 1, &imageSet, 0, nullptr);
+
         GPUDrawPushConstant pushConstants{};
         pushConstants.worldMatrix = glm::mat4{1.0f};
         pushConstants.vertexBuffer = testMeshes[2]->meshBuffers.vertexBufferAddress;
