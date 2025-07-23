@@ -120,7 +120,7 @@ public:
 	std::vector<const char*> _deviceExtensions;
 
 	// descriptor
-	DescriptorAllocator globalDescriptorAllocator;
+	DescriptorAllocatorGrowable globalDescriptorAllocator;
 
 	VmaAllocator _allocator;
 
