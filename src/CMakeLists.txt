@@ -17,6 +17,8 @@ add_executable (engine
   vk_loader.cpp
   vk_healper.h
   vk_healper.cpp
+  vk_material.h
+  vk_material.cpp
   camera.cpp
   camera.h
 )

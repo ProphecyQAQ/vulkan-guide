@@ -60,6 +60,20 @@ struct FrameData {
 	DescriptorAllocatorGrowable _frameDescriptors;
 };
 
+//>RenderObject
+struct RenderObject {
+	uint32_t indexCount;
+	uint32_t firstIndex;
+	VkBuffer indexBuffer;
+
+	MaterialInstance* material;
+
+	glm::mat4 transform;
+	VkDeviceAddress vertexBufferAddress;
+};
+
+//>RenderObject
+
 constexpr unsigned int FRAME_OVERLAP = 2;
 
 class VulkanEngine {
@@ -98,7 +112,10 @@ public:
 	void immediate_submit(std::function<void(VkCommandBuffer cmd)>&& function);
 	void draw_imgui(VkCommandBuffer cmd, VkImageView targetImageView);
 	GPUMeshBuffers uploadMesh(std::span<uint32_t> indices, std::span<Vertex> vertices);
-public:
+
+	VkDevice get_device() const { return _device; }
+	VkDescriptorSetLayout get_gpu_scene_data_descriptor_layout() const { return _gpuSceneDataDescriptorLayout; }
+public:	
 	std::vector<const char*> _validationLayer;
 	std::vector<const char*> _deviceExtensions;
 
