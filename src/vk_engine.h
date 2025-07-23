@@ -9,6 +9,7 @@
 #include <vk_healper.h>
 #include <vk_loader.h>
 #include <vk_pipelines.h>
+#include <vk_material.h>
 
 #include "imgui.h"
 #include "imgui_impl_sdl2.h"
@@ -200,6 +201,10 @@ private:
 	AllocatedImage create_image(void *data, VkExtent3D size, VkFormat format, VkImageUsageFlags usage, bool mipmapped = false);
 	void destroy_image(const AllocatedImage& image);
 private:
+
+	// default material
+	MaterialInstance _defaultMaterialInstance;
+	GLTFMetallic_Roughness _metalRoughMaterial;
 
 	// default image
 	AllocatedImage _whiteImage;
