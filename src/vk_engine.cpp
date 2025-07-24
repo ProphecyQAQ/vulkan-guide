@@ -865,6 +865,23 @@ void VulkanEngine::init_default_data()
         materialResources.dataBufferOffset = 0;
 
         _defaultMaterialInstance = _metalRoughMaterial.write_material(_device, MaterialPass::MainColor, materialResources, globalDescriptorAllocator);
+
+
+        for (auto& mesh : testMeshes)
+        {
+            std::shared_ptr<MeshNode> meshNode = std::make_shared<MeshNode>();
+            meshNode->mesh = mesh;
+            meshNode->localTransform = glm::mat4{1.f};
+            meshNode->worldTransform = glm::mat4{1.f};
+
+            for (auto& surface : meshNode->mesh->surfaces)
+            {
+                surface.material = std::make_shared<GLTFMaterial>(_defaultMaterialInstance);
+            }
+
+            loadedNodes[mesh->name] = std::move(meshNode);
+            fmt::println("[VulkanEngine] [init_default_data] loaded mesh {}", mesh->name);
+        }
     }
 }
 
@@ -1066,83 +1083,102 @@ void VulkanEngine::draw_geometry(VkCommandBuffer cmd)
     VkRenderingInfo renderInfo = vkinit::rendering_info(_drawExtent, &colorAttachment, &depthAttachment);
     vkCmdBeginRendering(cmd, &renderInfo);
 
-    // draw monkey head
-    {
-        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, _meshPipeline);
-        
-        // set dynamic viewport and scissor
-        VkViewport viewport = {};
-        viewport.x = 0.0f;
-        viewport.y = 0.0f;
-        viewport.width = static_cast<float>(_drawExtent.width);
-        viewport.height = static_cast<float>(_drawExtent.height);
-        viewport.minDepth = 0.0f;
-        viewport.maxDepth = 1.0f;
+    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, _meshPipeline);
 
-        vkCmdSetViewport(cmd, 0, 1, &viewport);
+    // set dynamic viewport and scissor
+    VkViewport viewport = {};
+    viewport.x = 0.0f;
+    viewport.y = 0.0f;
+    viewport.width = static_cast<float>(_drawExtent.width);
+    viewport.height = static_cast<float>(_drawExtent.height);
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
 
-        VkRect2D scissor = {};
-        scissor.offset.x = 0;
-        scissor.offset.y = 0;
-        scissor.extent.width = _drawExtent.width;
-        scissor.extent.height = _drawExtent.height;
+    vkCmdSetViewport(cmd, 0, 1, &viewport);
 
-        vkCmdSetScissor(cmd, 0, 1, &scissor);
+    VkRect2D scissor = {};
+    scissor.offset.x = 0;
+    scissor.offset.y = 0;
+    scissor.extent.width = _drawExtent.width;
+    scissor.extent.height = _drawExtent.height;
 
-        // bind texture
-        VkDescriptorSet imageSet = get_current_frame()._frameDescriptors.allocate(_device, _singleImageDescriptorLayout, nullptr);
-        {
-            DescriptorWriter writer;
-            writer.write_image(0, _errorCheckerboardImage.imageView, _defaultSamplerNearest, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-            writer.update_set(_device, imageSet);
-        }
-        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, _meshPipelineLayout, 0, 1, &imageSet, 0, nullptr);
-
-        GPUDrawPushConstant pushConstants{};
-        pushConstants.worldMatrix = glm::mat4{1.0f};
-        pushConstants.vertexBuffer = testMeshes[2]->meshBuffers.vertexBufferAddress;
-
-        glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3{ 0,0,-5 });
-        // camera projection
-        glm::mat4 projection = glm::perspective(glm::radians(70.f), (float)_drawExtent.width/(float)_drawExtent.height, 10000.f, 0.1f);
-        // invert the Y direction on projection matrix so that we are more similar
-	    // to opengl and gltf axis
-        projection[1][1] *= -1;
-        pushConstants.worldMatrix = projection * view;
-
-        vkCmdPushConstants(cmd, _meshPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GPUDrawPushConstant), &pushConstants);
-        vkCmdBindIndexBuffer(cmd, testMeshes[2]->meshBuffers.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-
-        vkCmdDrawIndexed(cmd, testMeshes[2]->surfaces[0].count, 1, testMeshes[2]->surfaces[0].startIndex, 0, 0);
-    }
+    vkCmdSetScissor(cmd, 0, 1, &scissor);
 
     // create gpu scene data
+    
+    // allocate uniform buffer for scene data
+    AllocatedBuffer gpuSceneDataBuffer = create_buffer(sizeof(GPUSceneData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+    // add destroy
+    get_current_frame()._deletionQueue.push_function([=]() {
+        destroy_buffer(gpuSceneDataBuffer);
+    });
+
+    // write the buffer
+    GPUSceneData *sceneUniformData = (GPUSceneData*)gpuSceneDataBuffer.allocation->GetMappedData();
+    *sceneUniformData = _sceneData;
+
+    // create descriptor set that binds that buffer and update it
+    VkDescriptorSet globalDescriptor = get_current_frame()._frameDescriptors.allocate(_device, _gpuSceneDataDescriptorLayout, nullptr);
+
+    DescriptorWriter writer;
+    writer.write_buffer(0, gpuSceneDataBuffer.buffer, sizeof(GPUSceneData), 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+    writer.update_set(_device, globalDescriptor);
+    
+    // draw context
+    for (const RenderObject& obj : _mainDrawContext.opaqueSurface)
     {
-        // allocate uniform buffer for scene data
-        AllocatedBuffer gpuSceneDataBuffer = create_buffer(sizeof(GPUSceneData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-        // add destroy
-        get_current_frame()._deletionQueue.push_function([=]() {
-            destroy_buffer(gpuSceneDataBuffer);
-        });
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, obj.material->pipeline->pipeline);
+        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, obj.material->pipeline->layout, 0, 1, &globalDescriptor, 0, nullptr);
+        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, obj.material->pipeline->layout, 1, 1, &obj.material->materialSet, 0, nullptr);
 
-        // write the buffer
-        GPUSceneData *sceneUniformData = (GPUSceneData*)gpuSceneDataBuffer.allocation->GetMappedData();
-        *sceneUniformData = _sceneData;
+        vkCmdBindIndexBuffer(cmd, obj.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-        // create descriptor set that binds that buffer and update it
-        VkDescriptorSet globalDescriptor = get_current_frame()._frameDescriptors.allocate(_device, _gpuSceneDataDescriptorLayout, nullptr);
+        GPUDrawPushConstant pushConstant;
+        pushConstant.vertexBuffer = obj.vertexBufferAddress;
+        pushConstant.worldMatrix = obj.transform;
+        vkCmdPushConstants(cmd, obj.material->pipeline->layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GPUDrawPushConstant), &pushConstant);
 
-        DescriptorWriter writer;
-        writer.write_buffer(0, gpuSceneDataBuffer.buffer, sizeof(GPUSceneData), 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-        writer.update_set(_device, globalDescriptor);
+        vkCmdDrawIndexed(cmd, obj.indexCount, 1, obj.firstIndex, 0, 0);
     }
 
     vkCmdEndRendering(cmd);
 }
 
+void VulkanEngine::update_scene()
+{
+    _mainDrawContext.opaqueSurface.clear();
+
+    loadedNodes["Suzanne"]->Draw(glm::mat4{1.f}, _mainDrawContext);	
+
+    for (int x = -3; x < 3; x++) {
+
+		glm::mat4 scale = glm::scale(glm::vec3{0.2});
+		glm::mat4 translation =  glm::translate(glm::vec3{x, 1, 0});
+
+		loadedNodes["Cube"]->Draw(translation * scale, _mainDrawContext);
+	}
+
+	_sceneData.view = glm::translate(glm::vec3{ 0,0,-5 });
+	// camera projection
+	_sceneData.proj = glm::perspective(glm::radians(70.f), (float)_windowExtent.width / (float)_windowExtent.height, 10000.f, 0.1f);
+
+	// invert the Y direction on projection matrix so that we are more similar
+	// to opengl and gltf axis
+	_sceneData.proj[1][1] *= -1;
+	_sceneData.viewProj = _sceneData.proj * _sceneData.view;
+
+	//some default lighting parameters
+	_sceneData.ambientColor = glm::vec4(.1f);
+	_sceneData.sunlightColor = glm::vec4(1.f);
+	_sceneData.sunlightDirection = glm::vec4(0,1,0.5,1.f);
+}
+
 void VulkanEngine::draw()
 { 
     FrameData& currentFrame = get_current_frame();
+    
+    // update scene data and draw context
+    update_scene();
 
     // wait until the gpu has finished rendering the last frame
     VK_CHECK(vkWaitForFences(_device, 1, &currentFrame._renderFence, true, UINT64_MAX));

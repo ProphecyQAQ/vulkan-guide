@@ -115,6 +115,8 @@ public:
 	//run main loop
 	void run();
 
+	// update draw context
+	void update_scene();
 public:
 	FrameData& get_current_frame() {return _frameData[_frameNumber%FRAME_OVERLAP];}
 	
@@ -209,6 +211,9 @@ private:
 	AllocatedImage create_image(void *data, VkExtent3D size, VkFormat format, VkImageUsageFlags usage, bool mipmapped = false);
 	void destroy_image(const AllocatedImage& image);
 private:
+	// draw context
+	DrawContext _mainDrawContext;
+	std::unordered_map<std::string, std::shared_ptr<Node>> loadedNodes;
 
 	// default material
 	MaterialInstance _defaultMaterialInstance;
