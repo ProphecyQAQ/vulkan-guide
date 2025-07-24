@@ -113,3 +113,42 @@ struct MaterialInstance {
     MaterialPass passType;
 };
 //>material
+
+//> renderable
+
+struct DrawContext;
+
+// bass class for a renderable dynamic object
+class IRenderable {
+
+    virtual void Draw(const glm::mat4& parentMatrix, DrawContext& ctx) = 0;
+};
+
+
+// implement of a drawable scene node
+// contains a list of children and a transform
+struct Node : public IRenderable {
+
+    glm::mat4 localTransform;
+    glm::mat4 worldTransform;
+
+    std::weak_ptr<Node> parent;
+    std::vector<std::shared_ptr<Node>> children;
+
+    void refreshTransform(const glm::mat4& parentMatrix)
+    {
+        worldTransform = parentMatrix * localTransform;
+        for (auto child : children)
+        {
+            child->refreshTransform(worldTransform);
+        }
+    }
+
+    virtual void Draw(const glm::mat4& parentMatrix, DrawContext& ctx) override {
+        for (auto child : children)
+        {
+            child->Draw(parentMatrix, ctx);
+        }
+    }
+};
+//> renderable

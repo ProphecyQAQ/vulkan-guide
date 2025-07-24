@@ -1486,3 +1486,28 @@ void VulkanEngine::resize_swapchain()
 
 	resize_requested = false;
 }
+
+//>MeshNode
+
+void MeshNode::Draw(const glm::mat4& parentMatrix, DrawContext& ctx)
+{
+    glm::mat4 nodeMatrix = parentMatrix * worldTransform;
+
+    for (auto &surface : mesh->surfaces)
+    {
+        RenderObject obj;
+        obj.firstIndex = surface.startIndex;
+        obj.indexCount = surface.count;
+        obj.indexBuffer = mesh->meshBuffers.indexBuffer.buffer;
+        obj.vertexBufferAddress = mesh->meshBuffers.vertexBufferAddress;
+
+        obj.transform = nodeMatrix;
+        obj.material = &surface.material->data;
+
+        ctx.opaqueSurface.push_back(obj);
+    }
+
+    Node::Draw(parentMatrix, ctx);
+}
+
+//>MeshNode

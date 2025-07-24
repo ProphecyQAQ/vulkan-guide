@@ -73,6 +73,14 @@ struct RenderObject {
 	VkDeviceAddress vertexBufferAddress;
 };
 
+struct DrawContext {
+	std::vector<RenderObject> opaqueSurface;
+};
+
+struct MeshNode : public Node {
+	std::shared_ptr<MeshAsset> mesh;
+	virtual void Draw(const glm::mat4& parentMatrix, DrawContext& ctx) override;
+};
 //>RenderObject
 
 constexpr unsigned int FRAME_OVERLAP = 2;
