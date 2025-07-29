@@ -59,6 +59,13 @@ void VulkanEngine::init()
 
     init_default_data();
 
+    // init camera
+    _mainCamera.velocity = glm::vec3(0.f);
+	_mainCamera.position = glm::vec3(0, 0, 5);
+
+    _mainCamera.pitch = 0;
+    _mainCamera.yaw = 0;
+
     // everything went fine
     _isInitialized = true;
 }
@@ -1146,6 +1153,9 @@ void VulkanEngine::draw_geometry(VkCommandBuffer cmd)
 
 void VulkanEngine::update_scene(float deltaTime)
 {
+    // update camera
+    _mainCamera.update(deltaTime);
+
     _mainDrawContext.opaqueSurface.clear();
 
     loadedNodes["Suzanne"]->Draw(glm::mat4{1.f}, _mainDrawContext);	
@@ -1158,7 +1168,7 @@ void VulkanEngine::update_scene(float deltaTime)
 		loadedNodes["Cube"]->Draw(translation * scale, _mainDrawContext);
 	}
 
-	_sceneData.view = glm::translate(glm::vec3{ 0,0,-5 });
+	_sceneData.view = _mainCamera.get_view_matrix();
 	// camera projection
 	_sceneData.proj = glm::perspective(glm::radians(70.f), (float)_windowExtent.width / (float)_windowExtent.height, 10000.f, 0.1f);
 
@@ -1173,12 +1183,12 @@ void VulkanEngine::update_scene(float deltaTime)
 	_sceneData.sunlightDirection = glm::vec4(0,1,0.5,1.f);
 }
 
-void VulkanEngine::draw()
+void VulkanEngine::draw(float deltaTime)
 { 
     FrameData& currentFrame = get_current_frame();
     
     // update scene data and draw context
-    update_scene();
+    update_scene(deltaTime);
 
     // wait until the gpu has finished rendering the last frame
     VK_CHECK(vkWaitForFences(_device, 1, &currentFrame._renderFence, true, UINT64_MAX));
@@ -1305,6 +1315,9 @@ void VulkanEngine::run()
                     stop_rendering = false;
                 }
             }
+
+            // process sdl event in camera
+            _mainCamera.process_SDL_event(e);
 
             //send SDL event to imgui for handling
             ImGui_ImplSDL2_ProcessEvent(&e);
