@@ -17,5 +17,5 @@ public:
 
     void process_SDL_event(SDL_Event& event);
 
-    void update();
+    void update(float deltaTime);
 };

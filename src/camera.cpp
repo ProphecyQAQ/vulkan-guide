@@ -2,10 +2,10 @@
 #include <glm/gtx/transform.hpp>
 #include <glm/gtx/quaternion.hpp>
 
-void Camera::update()
+void Camera::update(float deltaTime)
 {
     glm::mat4 cameraRotation = get_rotation_matrix();
-    position += glm::vec3(cameraRotation * glm::vec4(velocity * 0.5f, 0.f));
+    position += glm::vec3(cameraRotation * glm::vec4(velocity * deltaTime * 5.f, 0.f));
 }
 
 void Camera::process_SDL_event(SDL_Event& e)

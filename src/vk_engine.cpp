@@ -1144,7 +1144,7 @@ void VulkanEngine::draw_geometry(VkCommandBuffer cmd)
     vkCmdEndRendering(cmd);
 }
 
-void VulkanEngine::update_scene()
+void VulkanEngine::update_scene(float deltaTime)
 {
     _mainDrawContext.opaqueSurface.clear();
 
@@ -1283,9 +1283,14 @@ void VulkanEngine::run()
 {
     SDL_Event e;
     bool bQuit = false;
+    static auto last_frame_time = std::chrono::high_resolution_clock::now();
 
     // main loop
     while (!bQuit) {
+        auto current_frame_time = std::chrono::high_resolution_clock::now();
+        float deltaTime = std::chrono::duration<float>(current_frame_time - last_frame_time).count();
+        last_frame_time = current_frame_time;
+
         // Handle events on queue
         while (SDL_PollEvent(&e) != 0) {
             // close the window when user alt-f4s or clicks the X button
@@ -1338,7 +1343,7 @@ void VulkanEngine::run()
         //make imgui calculate internal draw structures
         ImGui::Render();
 
-        draw();
+        draw(deltaTime);
     }
 }
 

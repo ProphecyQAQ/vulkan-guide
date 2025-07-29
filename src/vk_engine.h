@@ -104,7 +104,7 @@ public:
 	void cleanup();
 
 	//draw loop
-	void draw();
+	void draw(float deltaTime);
 
 	//draw image background
 	void draw_background(VkCommandBuffer cmd);
@@ -116,7 +116,7 @@ public:
 	void run();
 
 	// update draw context
-	void update_scene();
+	void update_scene(float deltaTime);
 public:
 	FrameData& get_current_frame() {return _frameData[_frameNumber%FRAME_OVERLAP];}
 	
