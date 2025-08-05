@@ -61,7 +61,7 @@ void VulkanEngine::init()
 
     // init camera
     _mainCamera.velocity = glm::vec3(0.f);
-	_mainCamera.position = glm::vec3(0, 0, 5);
+	_mainCamera.position = glm::vec3(30.f, -00.f, -085.f);
 
     _mainCamera.pitch = 0;
     _mainCamera.yaw = 0;
@@ -890,6 +890,14 @@ void VulkanEngine::init_default_data()
             fmt::println("[VulkanEngine] [init_default_data] loaded mesh {}", mesh->name);
         }
     }
+
+    // load gltf
+    std::string structurePath = { "..\\..\\assets\\structure.glb" };
+    auto structureFile = loadGltf(this,structurePath);
+
+    assert(structureFile.has_value());
+
+    loadedScenes["structure"] = *structureFile;
 }
 
 void VulkanEngine::create_swapchain()
@@ -1023,6 +1031,8 @@ void VulkanEngine::cleanup()
     if (_isInitialized) {
 
         vkDeviceWaitIdle(_device);
+
+        loadedScenes.clear();
 
         for (int i = 0; i < FRAME_OVERLAP; i ++)
         {
@@ -1181,6 +1191,8 @@ void VulkanEngine::update_scene(float deltaTime)
 	_sceneData.ambientColor = glm::vec4(.1f);
 	_sceneData.sunlightColor = glm::vec4(1.f);
 	_sceneData.sunlightDirection = glm::vec4(0,1,0.5,1.f);
+
+    loadedScenes["structure"]->Draw(glm::mat4{ 1.f }, _mainDrawContext);
 }
 
 void VulkanEngine::draw(float deltaTime)

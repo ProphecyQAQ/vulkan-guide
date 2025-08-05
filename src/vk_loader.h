@@ -1,6 +1,8 @@
 ﻿#pragma once
 
 #include <vk_types.h>
+#include <vk_descriptors.h>
+
 #include <unordered_map>
 #include <filesystem>
 
@@ -25,4 +27,30 @@ struct MeshAsset
     GPUMeshBuffers meshBuffers;
 };
 
+struct LoadedGLTF : public IRenderable {
+
+    // store all data 
+    std::unordered_map<std::string, std::shared_ptr<MeshAsset>> meshes;
+    std::unordered_map<std::string, std::shared_ptr<Node>> nodes;
+    std::unordered_map<std::string, AllocatedImage> images;
+    std::unordered_map<std::string, std::shared_ptr<GLTFMaterial>> materials;
+
+    std::vector<std::shared_ptr<Node>> parentNodes;
+
+    std::vector<VkSampler> samplers;
+
+    DescriptorAllocatorGrowable descriptorPool;
+
+    AllocatedBuffer materialDataBuffer;
+
+    VulkanEngine *engine;
+
+    ~LoadedGLTF() { clear();};
+
+    virtual void Draw(const glm::mat4& topMatrix, DrawContext& ctx); 
+private:
+    void clear() {};
+};
+
 std::optional<std::vector<std::shared_ptr<MeshAsset>>> loadGltfMeshes(VulkanEngine* engine, std::filesystem::path filePath);
+std::optional<std::shared_ptr<LoadedGLTF>> loadGltf(VulkanEngine* engine, std::filesystem::path filePath);

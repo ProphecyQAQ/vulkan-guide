@@ -200,6 +200,7 @@ private:
 	void create_swapchain();
 	void destroy_swapchain();
 	void resize_swapchain();
+public:
 	/**
 	* @PARAM allocSize: size of the buffer to allocate
 	* @PARAM usage: usage flags for the buffer
@@ -211,7 +212,18 @@ private:
 	AllocatedImage create_image(VkExtent3D size, VkFormat format, VkImageUsageFlags usage, bool mipmapped = false);
 	AllocatedImage create_image(void *data, VkExtent3D size, VkFormat format, VkImageUsageFlags usage, bool mipmapped = false);
 	void destroy_image(const AllocatedImage& image);
-private:
+public:
+ 	std::unordered_map<std::string, std::shared_ptr<LoadedGLTF>> loadedScenes;
+	
+	// default image
+	AllocatedImage _whiteImage;
+	AllocatedImage _blackImage;
+	AllocatedImage _greyImage;
+	AllocatedImage _errorCheckerboardImage;
+
+	VkSampler _defaultSamplerLinear;
+	VkSampler _defaultSamplerNearest;
+
 	// camera
 	Camera _mainCamera;
 
@@ -222,15 +234,6 @@ private:
 	// default material
 	MaterialInstance _defaultMaterialInstance;
 	GLTFMetallic_Roughness _metalRoughMaterial;
-
-	// default image
-	AllocatedImage _whiteImage;
-	AllocatedImage _blackImage;
-	AllocatedImage _greyImage;
-	AllocatedImage _errorCheckerboardImage;
-
-	VkSampler _defaultSamplerLinear;
-	VkSampler _defaultSamplerNearest;
 
 	GPUSceneData _sceneData;
 	VkDescriptorSetLayout _gpuSceneDataDescriptorLayout;
