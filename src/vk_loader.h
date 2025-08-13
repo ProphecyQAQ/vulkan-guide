@@ -49,7 +49,7 @@ struct LoadedGLTF : public IRenderable {
 
     virtual void Draw(const glm::mat4& topMatrix, DrawContext& ctx); 
 private:
-    void clear() {};
+    void clear();
 };
 
 std::optional<std::vector<std::shared_ptr<MeshAsset>>> loadGltfMeshes(VulkanEngine* engine, std::filesystem::path filePath);
