@@ -1093,6 +1093,13 @@ void VulkanEngine::draw_background(VkCommandBuffer cmd)
 
 void VulkanEngine::draw_geometry(VkCommandBuffer cmd)
 {
+    // stat
+    //reset counters
+    stats.drawcall_count = 0;
+    stats.triangle_count = 0;
+    //begin clock
+    auto start = std::chrono::system_clock::now();
+
     // connected to draw image
     VkRenderingAttachmentInfo colorAttachment = vkinit::attachment_info(_drawImage.imageView, nullptr, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
     VkRenderingAttachmentInfo depthAttachment = vkinit::depth_attachment_info(_depthImage.imageView, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
@@ -1156,13 +1163,25 @@ void VulkanEngine::draw_geometry(VkCommandBuffer cmd)
         vkCmdPushConstants(cmd, obj.material->pipeline->layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GPUDrawPushConstant), &pushConstant);
 
         vkCmdDrawIndexed(cmd, obj.indexCount, 1, obj.firstIndex, 0, 0);
+
+        stats.drawcall_count ++;
+        stats.triangle_count += obj.indexCount / 3;
     }
 
     vkCmdEndRendering(cmd);
+
+    // end
+    auto end = std::chrono::system_clock::now();
+    //convert to microseconds (integer), and then come back to miliseconds
+    auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    stats.mesh_draw_time = elapsed.count() / 1000.f;
 }
 
 void VulkanEngine::update_scene(float deltaTime)
 {
+    //begin clock
+    auto start = std::chrono::system_clock::now();
+
     // update camera
     _mainCamera.update(deltaTime);
 
@@ -1193,6 +1212,12 @@ void VulkanEngine::update_scene(float deltaTime)
 	_sceneData.sunlightDirection = glm::vec4(0,1,0.5,1.f);
 
     loadedScenes["structure"]->Draw(glm::mat4{ 1.f }, _mainDrawContext);
+
+    // end clock
+    auto end = std::chrono::system_clock::now();
+    //convert to microseconds (integer), and then come back to miliseconds
+    auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    stats.scene_update_time = elapsed.count() / 1000.f;
 }
 
 void VulkanEngine::draw(float deltaTime)
@@ -1309,6 +1334,9 @@ void VulkanEngine::run()
 
     // main loop
     while (!bQuit) {
+        // begin lock
+        auto start = std::chrono::system_clock::now();
+
         auto current_frame_time = std::chrono::high_resolution_clock::now();
         float deltaTime = std::chrono::duration<float>(current_frame_time - last_frame_time).count();
         last_frame_time = current_frame_time;
@@ -1365,10 +1393,25 @@ void VulkanEngine::run()
 		}
 		ImGui::End();
 
+        if (ImGui::Begin("Stats"))
+        {
+            ImGui::Text("frametime %f ms", stats.frametime);
+            ImGui::Text("draw time %f ms", stats.mesh_draw_time);
+            ImGui::Text("update time %f ms", stats.scene_update_time);
+            ImGui::Text("triangles %i", stats.triangle_count);
+            ImGui::Text("draws %i", stats.drawcall_count);
+            ImGui::End();
+        }
+
         //make imgui calculate internal draw structures
         ImGui::Render();
 
         draw(deltaTime);
+
+        // end clock
+        auto end = std::chrono::system_clock::now();
+        auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+        stats.frametime = elapsed.count() / 1000;
     }
 }
 

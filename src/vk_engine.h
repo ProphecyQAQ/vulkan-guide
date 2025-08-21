@@ -10,11 +10,19 @@
 #include <vk_loader.h>
 #include <vk_pipelines.h>
 #include <vk_material.h>
-#include <Camera.h>
+#include <camera.h>
 
 #include "imgui.h"
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_vulkan.h"
+
+struct EngineStats {
+	float frametime;
+	int triangle_count;
+	int drawcall_count;
+	float scene_update_time;
+	float mesh_draw_time;
+};
 
 struct ComputePushConstants {
 	glm::vec4 data1;
@@ -245,4 +253,7 @@ public:
 
 	std::vector<std::shared_ptr<MeshAsset>> testMeshes;
 	bool resize_requested;
+
+	// stat
+	EngineStats stats;
 };
