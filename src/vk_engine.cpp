@@ -873,7 +873,6 @@ void VulkanEngine::init_default_data()
 
         _defaultMaterialInstance = _metalRoughMaterial.write_material(_device, MaterialPass::MainColor, materialResources, globalDescriptorAllocator);
 
-
         for (auto& mesh : testMeshes)
         {
             std::shared_ptr<MeshNode> meshNode = std::make_shared<MeshNode>();
@@ -1109,26 +1108,7 @@ void VulkanEngine::draw_geometry(VkCommandBuffer cmd)
 
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, _meshPipeline);
 
-    // set dynamic viewport and scissor
-    VkViewport viewport = {};
-    viewport.x = 0.0f;
-    viewport.y = 0.0f;
-    viewport.width = static_cast<float>(_drawExtent.width);
-    viewport.height = static_cast<float>(_drawExtent.height);
-    viewport.minDepth = 0.0f;
-    viewport.maxDepth = 1.0f;
-
-    vkCmdSetViewport(cmd, 0, 1, &viewport);
-
-    VkRect2D scissor = {};
-    scissor.offset.x = 0;
-    scissor.offset.y = 0;
-    scissor.extent.width = _drawExtent.width;
-    scissor.extent.height = _drawExtent.height;
-
-    vkCmdSetScissor(cmd, 0, 1, &scissor);
-
-    // create gpu scene data
+    //////////////////// create gpu scene data /////////////////////////////
     
     // allocate uniform buffer for scene data
     AllocatedBuffer gpuSceneDataBuffer = create_buffer(sizeof(GPUSceneData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
@@ -1147,25 +1127,73 @@ void VulkanEngine::draw_geometry(VkCommandBuffer cmd)
     DescriptorWriter writer;
     writer.write_buffer(0, gpuSceneDataBuffer.buffer, sizeof(GPUSceneData), 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
     writer.update_set(_device, globalDescriptor);
-    
-    // draw context
-    for (const RenderObject& obj : _mainDrawContext.opaqueSurface)
-    {
-        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, obj.material->pipeline->pipeline);
-        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, obj.material->pipeline->layout, 0, 1, &globalDescriptor, 0, nullptr);
-        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, obj.material->pipeline->layout, 1, 1, &obj.material->materialSet, 0, nullptr);
 
-        vkCmdBindIndexBuffer(cmd, obj.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+    //////////////////// create gpu scene data /////////////////////////////
+
+    MaterialInstance* lastMaterial = nullptr;
+    MaterialPipeline* lastPipeline = nullptr;
+    VkBuffer lastIndexBuffer = VK_NULL_HANDLE;
+    // draw lambad
+    auto draw = [&] (const RenderObject &obj) 
+    {
+        VkPipeline pipeline = obj.material->pipeline->pipeline;
+        VkPipelineLayout pipelineLayout = obj.material->pipeline->layout;
+
+        if (obj.material != lastMaterial)
+        {
+            if (obj.material->pipeline != lastPipeline)
+            {
+                vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+                vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &globalDescriptor, 0, nullptr);
+
+                // set dynamic viewport and scissor
+                VkViewport viewport = {};
+                viewport.x = 0.0f;
+                viewport.y = 0.0f;
+                viewport.width = static_cast<float>(_drawExtent.width);
+                viewport.height = static_cast<float>(_drawExtent.height);
+                viewport.minDepth = 0.0f;
+                viewport.maxDepth = 1.0f;
+
+                vkCmdSetViewport(cmd, 0, 1, &viewport);
+
+                VkRect2D scissor = {};
+                scissor.offset.x = 0;
+                scissor.offset.y = 0;
+                scissor.extent.width = _drawExtent.width;
+                scissor.extent.height = _drawExtent.height;
+
+                vkCmdSetScissor(cmd, 0, 1, &scissor);
+                
+            }
+
+            vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, 1, &obj.material->materialSet, 0, nullptr);
+        }
+        
+        if (obj.indexBuffer != lastIndexBuffer)
+        {
+            vkCmdBindIndexBuffer(cmd, obj.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+        }
 
         GPUDrawPushConstant pushConstant;
         pushConstant.vertexBuffer = obj.vertexBufferAddress;
         pushConstant.worldMatrix = obj.transform;
-        vkCmdPushConstants(cmd, obj.material->pipeline->layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GPUDrawPushConstant), &pushConstant);
+        vkCmdPushConstants(cmd, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GPUDrawPushConstant), &pushConstant);
 
         vkCmdDrawIndexed(cmd, obj.indexCount, 1, obj.firstIndex, 0, 0);
 
+        lastMaterial = obj.material;
+        lastPipeline = obj.material->pipeline;
+        lastIndexBuffer = obj.indexBuffer;
+
         stats.drawcall_count ++;
         stats.triangle_count += obj.indexCount / 3;
+    };
+    
+    // draw context
+    for (const RenderObject& obj : _mainDrawContext.opaqueSurface)
+    {
+        draw(obj);
     }
 
     vkCmdEndRendering(cmd);
@@ -1211,7 +1239,7 @@ void VulkanEngine::update_scene(float deltaTime)
 	_sceneData.sunlightColor = glm::vec4(1.f);
 	_sceneData.sunlightDirection = glm::vec4(0,1,0.5,1.f);
 
-    loadedScenes["structure"]->Draw(glm::mat4{ 1.f }, _mainDrawContext);
+    //loadedScenes["structure"]->Draw(glm::mat4{ 1.f }, _mainDrawContext);
 
     // end clock
     auto end = std::chrono::system_clock::now();
