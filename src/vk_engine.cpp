@@ -584,9 +584,6 @@ void VulkanEngine::init_pipelines()
 {
     init_background_pipelines();
 
-    // graphics
-    init_mesh_pipeline();
-
     // material
     _metalRoughMaterial.build_pipelines(this);
 }
@@ -670,71 +667,6 @@ void VulkanEngine::init_background_pipelines()
     });
 }
 
-void VulkanEngine::init_mesh_pipeline()
-{
-    VkShaderModule triangleFragShader;
-	if (!vkutil::load_shader_module("../../shaders/tex_image.frag.spv", _device, &triangleFragShader)) {
-		fmt::print("Error when building the triangle fragment shader module");
-	}
-	else {
-		fmt::print("Triangle fragment shader succesfully loaded");
-	}
-
-	VkShaderModule triangleVertexShader;
-	if (!vkutil::load_shader_module("../../shaders/colored_triangle_mesh.vert.spv", _device, &triangleVertexShader)) {
-		fmt::print("Error when building the triangle vertex shader module");
-	}
-	else {
-		fmt::print("Triangle vertex shader succesfully loaded");
-	}
-
-    VkPushConstantRange pushConstantRange{};
-    pushConstantRange.offset = 0;
-    pushConstantRange.size = sizeof(GPUDrawPushConstant);
-    pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-    VkPipelineLayoutCreateInfo layoutCreateInfo = vkinit::pipeline_layout_create_info();
-    layoutCreateInfo.pPushConstantRanges = &pushConstantRange;
-    layoutCreateInfo.pushConstantRangeCount = 1;
-    layoutCreateInfo.pSetLayouts = &_singleImageDescriptorLayout;
-    layoutCreateInfo.setLayoutCount = 1;
-    
-    VK_CHECK(vkCreatePipelineLayout(_device, &layoutCreateInfo, nullptr, &_meshPipelineLayout));
-
-    PipelineBuilder pipelineBuilder;
-    pipelineBuilder.set_pipeline_layout(_meshPipelineLayout);
-    //connecting the vertex and pixel shaders to the pipeline
-	pipelineBuilder.set_shader(triangleVertexShader, triangleFragShader);
-	//it will draw triangles
-	pipelineBuilder.set_input_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
-	//filled triangles
-	pipelineBuilder.set_polygon_mode(VK_POLYGON_MODE_FILL);
-	//no backface culling
-	pipelineBuilder.set_cull_mode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE);
-	//no multisampling
-	pipelineBuilder.set_multisampling_none();
-	//no blending
-	pipelineBuilder.disable_blending();
-    //pipelineBuilder.enable_blend_additive();
-	//pipelineBuilder.disable_depthtest();
-    pipelineBuilder.enable_depthtest(VK_TRUE, VK_COMPARE_OP_GREATER_OR_EQUAL);
-
-    //connect the image format we will draw into, from draw image
-	pipelineBuilder.set_color_attachment_format(_drawImage.imageFormat);
-	pipelineBuilder.set_depth_format(_depthImage.imageFormat);
-
-	//finally build the pipeline
-	_meshPipeline = pipelineBuilder.build_pipeline(_device);
-
-    vkDestroyShaderModule(_device, triangleFragShader, nullptr);
-    vkDestroyShaderModule(_device, triangleVertexShader, nullptr);
-    _mainDeletionQueue.push_function([&]()
-    {
-        vkDestroyPipelineLayout(_device, _meshPipelineLayout, nullptr);
-        vkDestroyPipeline(_device, _meshPipeline, nullptr);
-    });
-}
-
 void VulkanEngine::init_imgui()
 {
     // 1: create descriptor pool for IMGUI
@@ -802,9 +734,6 @@ void VulkanEngine::init_imgui()
 
 void VulkanEngine::init_default_data()
 {
-    // load a basic mesh from gltf file
-    testMeshes = loadGltfMeshes(this,"..\\..\\assets\\basicmesh.glb").value();
-
     // init default image data
     // 3 default textures, white, grey, black. 1 pixel each
     uint32_t white = glm::packUnorm4x8(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
@@ -849,46 +778,6 @@ void VulkanEngine::init_default_data()
         vkDestroySampler(_device, _defaultSamplerLinear, nullptr);
         vkDestroySampler(_device, _defaultSamplerNearest, nullptr);
     });
-
-    // create material data
-    {
-        GLTFMetallic_Roughness::MaterialResources materialResources;
-        materialResources.colorImage = _whiteImage;
-        materialResources.colorSampler = _defaultSamplerLinear;
-        materialResources.metalRoughImage = _whiteImage;
-        materialResources.metalRoughSampler = _defaultSamplerLinear;
-
-        AllocatedBuffer materialConstantsBuffer = create_buffer(sizeof(GLTFMetallic_Roughness::MaterialConstants), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-        // write the buffer
-        GLTFMetallic_Roughness::MaterialConstants* sceneUniformData = (GLTFMetallic_Roughness::MaterialConstants*)materialConstantsBuffer.allocation->GetMappedData();
-        sceneUniformData->colorFactors = glm::vec4{1,1,1,1};
-        sceneUniformData->metal_rough_factors = glm::vec4{1,0.5,0,0};
-
-        _mainDeletionQueue.push_function([=, this](){
-            destroy_buffer(materialConstantsBuffer);
-        });
-
-        materialResources.dataBuffer = materialConstantsBuffer.buffer;
-        materialResources.dataBufferOffset = 0;
-
-        _defaultMaterialInstance = _metalRoughMaterial.write_material(_device, MaterialPass::MainColor, materialResources, globalDescriptorAllocator);
-
-        for (auto& mesh : testMeshes)
-        {
-            std::shared_ptr<MeshNode> meshNode = std::make_shared<MeshNode>();
-            meshNode->mesh = mesh;
-            meshNode->localTransform = glm::mat4{1.f};
-            meshNode->worldTransform = glm::mat4{1.f};
-
-            for (auto& surface : meshNode->mesh->surfaces)
-            {
-                surface.material = std::make_shared<GLTFMaterial>(_defaultMaterialInstance);
-            }
-
-            loadedNodes[mesh->name] = std::move(meshNode);
-            fmt::println("[VulkanEngine] [init_default_data] loaded mesh {}", mesh->name);
-        }
-    }
 
     // load gltf
     std::string structurePath = { "..\\..\\assets\\structure.glb" };
@@ -1050,6 +939,8 @@ void VulkanEngine::cleanup()
             destroy_buffer(mesh->meshBuffers.indexBuffer);
             destroy_buffer(mesh->meshBuffers.vertexBuffer);
         }
+        
+        _metalRoughMaterial.clear_resources(_device);
 
         _mainDeletionQueue.flush();
 
@@ -1105,8 +996,6 @@ void VulkanEngine::draw_geometry(VkCommandBuffer cmd)
 
     VkRenderingInfo renderInfo = vkinit::rendering_info(_drawExtent, &colorAttachment, &depthAttachment);
     vkCmdBeginRendering(cmd, &renderInfo);
-
-    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, _meshPipeline);
 
     //////////////////// create gpu scene data /////////////////////////////
     
@@ -1215,16 +1104,6 @@ void VulkanEngine::update_scene(float deltaTime)
 
     _mainDrawContext.opaqueSurface.clear();
 
-    loadedNodes["Suzanne"]->Draw(glm::mat4{1.f}, _mainDrawContext);	
-
-    for (int x = -3; x < 3; x++) {
-
-		glm::mat4 scale = glm::scale(glm::vec3{0.2});
-		glm::mat4 translation =  glm::translate(glm::vec3{x, 1, 0});
-
-		loadedNodes["Cube"]->Draw(translation * scale, _mainDrawContext);
-	}
-
 	_sceneData.view = _mainCamera.get_view_matrix();
 	// camera projection
 	_sceneData.proj = glm::perspective(glm::radians(70.f), (float)_windowExtent.width / (float)_windowExtent.height, 10000.f, 0.1f);
@@ -1239,7 +1118,7 @@ void VulkanEngine::update_scene(float deltaTime)
 	_sceneData.sunlightColor = glm::vec4(1.f);
 	_sceneData.sunlightDirection = glm::vec4(0,1,0.5,1.f);
 
-    //loadedScenes["structure"]->Draw(glm::mat4{ 1.f }, _mainDrawContext);
+    loadedScenes["structure"]->Draw(glm::mat4{ 1.f }, _mainDrawContext);
 
     // end clock
     auto end = std::chrono::system_clock::now();

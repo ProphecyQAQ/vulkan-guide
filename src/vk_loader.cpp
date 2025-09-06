@@ -551,9 +551,6 @@ void LoadedGLTF::clear()
 {
     VkDevice dv = engine->_device;
 
-    descriptorPool.destroy_pools(dv);
-    engine->destroy_buffer(materialDataBuffer);
-
     for (auto& [k, v] : meshes) {
 
 		engine->destroy_buffer(v->meshBuffers.indexBuffer);
@@ -572,5 +569,8 @@ void LoadedGLTF::clear()
 	for (auto& sampler : samplers) {
 		vkDestroySampler(dv, sampler, nullptr);
     }
+
+    descriptorPool.destroy_pools(dv);
+    engine->destroy_buffer(materialDataBuffer);
 }
 //> LoadedGLTF

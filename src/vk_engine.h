@@ -172,8 +172,6 @@ public:
 	// Pipeline
 	VkPipeline _gradientPipeline;
 	VkPipelineLayout _gradientPipelineLayout;
-	VkPipeline _meshPipeline;
-	VkPipelineLayout _meshPipelineLayout;
 
 	// immediate submit structures
 	VkFence _immFence;
@@ -190,8 +188,6 @@ private:
 	// pipelines
 	void init_pipelines();
 	void init_background_pipelines();
-	void init_triangle_pipeline();
-	void init_mesh_pipeline();
 	// ui
 	void init_imgui();
 	// default data
@@ -240,7 +236,6 @@ public:
 	std::unordered_map<std::string, std::shared_ptr<Node>> loadedNodes;
 
 	// default material
-	MaterialInstance _defaultMaterialInstance;
 	GLTFMetallic_Roughness _metalRoughMaterial;
 
 	GPUSceneData _sceneData;

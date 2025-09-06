@@ -94,3 +94,12 @@ MaterialInstance GLTFMetallic_Roughness::write_material(VkDevice device, Materia
 
     return materialInstance;
 }
+
+void GLTFMetallic_Roughness::clear_resources(VkDevice device)
+{
+    vkDestroyPipelineLayout(device, opaquePipeline.layout, nullptr);
+    vkDestroyPipeline(device, opaquePipeline.pipeline, nullptr);
+    vkDestroyPipeline(device, transparentPipeline.pipeline, nullptr);
+
+    vkDestroyDescriptorSetLayout(device, materialLayout, nullptr);
+}
