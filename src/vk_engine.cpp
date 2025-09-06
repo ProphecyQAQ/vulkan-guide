@@ -1080,9 +1080,29 @@ void VulkanEngine::draw_geometry(VkCommandBuffer cmd)
     };
     
     // draw context
-    for (const RenderObject& obj : _mainDrawContext.opaqueSurface)
+    // sort context
+    std::vector<int> opaque_order;
+    opaque_order.resize(_mainDrawContext.opaqueSurface.size());
+    for (int i = 0; i < opaque_order.size(); i ++)
     {
-        draw(obj);
+        opaque_order[i] = i;
+    }
+    std::sort(opaque_order.begin(), opaque_order.end(), [&](int l, int r){
+        const RenderObject& lr = _mainDrawContext.opaqueSurface[l];
+        const RenderObject& rr = _mainDrawContext.opaqueSurface[r];
+        if (lr.material != rr.material)
+        {
+            return lr.material < rr.material;
+        }
+        else 
+        {
+            return lr.firstIndex < rr.firstIndex;
+        }
+    });
+
+    for (int idx : opaque_order)
+    {
+        draw(_mainDrawContext.opaqueSurface[idx]);
     }
 
     vkCmdEndRendering(cmd);
