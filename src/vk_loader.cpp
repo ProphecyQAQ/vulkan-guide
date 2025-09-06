@@ -478,6 +478,16 @@ std::optional<std::shared_ptr<LoadedGLTF>> loadGltf(VulkanEngine* engine, std::f
                 newSurface.material = materials[0];
             }
 
+            // create bound box
+            glm::vec3 minPos = vertices[initial_vtx].position;
+            glm::vec3 maxPos = vertices[initial_vtx].position;
+            for (int i = initial_vtx; i < vertices.size(); i ++)
+            {
+                minPos = glm::min(minPos, vertices[i].position);
+                maxPos = glm::max(maxPos, vertices[i].position);
+            }
+            newSurface.bounds = Bounds(minPos, maxPos);
+
             newmesh->surfaces.push_back(newSurface);
         }
 

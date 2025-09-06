@@ -12,10 +12,27 @@ struct GLTFMaterial {
 	MaterialInstance data;
 };
 
+struct Bounds
+{
+    glm::vec3 origin;
+    float sphereRadius;
+    glm::vec3 extents;
+
+    Bounds() = default;
+
+    Bounds(glm::vec3 minPos, glm::vec3 maxPos)
+    {
+        origin = (minPos + maxPos) / 2.f;
+        extents = (maxPos - minPos) / 2.f;
+        sphereRadius = glm::length(extents);
+    }
+};
+
 struct GeoSurface
 {
     uint32_t startIndex;
     uint32_t count;
+    Bounds bounds;
     std::shared_ptr<GLTFMaterial> material;
 };
 

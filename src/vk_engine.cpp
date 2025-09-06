@@ -1538,6 +1538,7 @@ void MeshNode::Draw(const glm::mat4& parentMatrix, DrawContext& ctx)
         obj.vertexBufferAddress = mesh->meshBuffers.vertexBufferAddress;
 
         obj.transform = nodeMatrix;
+        obj.bounds = surface.bounds;
         obj.material = &surface.material->data;
 
         ctx.opaqueSurface.push_back(obj);
