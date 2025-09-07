@@ -16,6 +16,46 @@
 #include <thread>
 #include <cstring>
 
+//> global function
+bool is_visiable(const RenderObject& obj, const glm::mat4& viewproj)
+{
+    std::array<glm::vec3, 8> corners = {
+        glm::vec3 { 1, 1, 1 },
+        glm::vec3 { 1, 1, -1 },
+        glm::vec3 { 1, -1, 1 },
+        glm::vec3 { 1, -1, -1 },
+        glm::vec3 { -1, 1, 1 },
+        glm::vec3 { -1, 1, -1 },
+        glm::vec3 { -1, -1, 1 },
+        glm::vec3 { -1, -1, -1 },
+    };
+
+    glm::mat4 mvp = viewproj * obj.transform;
+    glm::vec3 minPos = glm::vec3{1.5f, 1.5f, 1.5f};
+    glm::vec3 maxPos = glm::vec3{-1.5f, -1.5f, -1.5f};
+    
+    for (int i = 0; i < 8; i ++)
+    {
+        glm::vec4 corner = glm::vec4(obj.bounds.origin + obj.bounds.extents * corners[i], 1.f);
+        glm::vec4 clipPos = mvp * corner;
+        glm::vec4 ndcPos = clipPos / clipPos.w;
+        
+        minPos = glm::min(glm::vec3(ndcPos), minPos);
+        maxPos = glm::max(glm::vec3(ndcPos), maxPos);
+    }
+
+    if ( minPos.x > 1.0f || maxPos.x < -1.f || minPos.y > 1.f || maxPos.y < -1.f || minPos.z > 1.f || maxPos.z < 0.f)
+    {
+        return false;
+    }
+    else 
+    {
+        return true;
+    }
+}
+//> global function
+
+
 VulkanEngine* loadedEngine = nullptr;
 
 VulkanEngine& VulkanEngine::Get() { return *loadedEngine; }
@@ -1102,7 +1142,10 @@ void VulkanEngine::draw_geometry(VkCommandBuffer cmd)
 
     for (int idx : opaque_order)
     {
-        draw(_mainDrawContext.opaqueSurface[idx]);
+        if (is_visiable(_mainDrawContext.opaqueSurface[idx], _sceneData.viewProj))
+        {
+            draw(_mainDrawContext.opaqueSurface[idx]);
+        }
     }
 
     vkCmdEndRendering(cmd);
