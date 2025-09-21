@@ -21,6 +21,9 @@ add_executable (engine
   vk_material.cpp
   camera.cpp
   camera.h
+  cvar.h
+  cvar.cpp
+  string_utils.h
 )
 
 set_property(TARGET engine PROPERTY CXX_STANDARD 20)
