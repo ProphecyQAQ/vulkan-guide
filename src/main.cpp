@@ -1,14 +1,16 @@
-#include <vk_engine.h>
+#include <Platform/Window.h>
 
-int main(int argc, char* argv[])
+int main()
 {
-	VulkanEngine engine;
+    WindowProps props("My Hazel Window", 1280, 720);
+    Window* window = Window::create(props);
 
-	engine.init();	
-	
-	engine.run();	
+    while (1)
+    {
+        // Main loop
+    }
 
-	engine.cleanup();	
-
-	return 0;
+    // Application loop would go here
+    delete window;
+    return 0;
 }
