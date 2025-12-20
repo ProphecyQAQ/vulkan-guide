@@ -9,20 +9,22 @@ public:
     WindowsWindow(const WindowProps& props);
     virtual ~WindowsWindow();
 
-    virtual uint32_t getWidth() const {
+    virtual uint32_t getWidth() const override {
         return props.Width;
     }
 
-    virtual uint32_t getHeight() const {
+    virtual uint32_t getHeight() const override {
         return props.Height;
     }
-    
-    virtual std::string getTitle() const
+
+    virtual std::string getTitle() const override
     {
         return props.Title;
     }
 
+    virtual void onUpdate() override;
 private:
     SDL_Window* window;
     WindowProps props;
+    bool bQuit = false;
 };
