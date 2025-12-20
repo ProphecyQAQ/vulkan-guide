@@ -7,7 +7,7 @@ class WindowsWindow : public Window
 {
 public:
     WindowsWindow(const WindowProps& props);
-    virtual ~WindowsWindow() = default;
+    virtual ~WindowsWindow();
 
     virtual uint32_t getWidth() const {
         return props.Width;

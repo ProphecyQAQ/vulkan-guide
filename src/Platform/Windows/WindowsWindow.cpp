@@ -16,3 +16,9 @@ WindowsWindow::WindowsWindow(const WindowProps& props)
         window_flags
     );
 }
+
+WindowsWindow::~WindowsWindow()
+{
+    SDL_DestroyWindow(window);
+    SDL_Quit();
+}
