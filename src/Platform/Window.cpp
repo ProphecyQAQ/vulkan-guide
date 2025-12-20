@@ -1,7 +1,8 @@
 #include <Window.h>
 #include <Windows/WindowsWindow.h>
+#include <memory>
 
-Window* Window::create(const WindowProps& props)
+std::unique_ptr<Window> Window::create(const WindowProps& props)
 {
-    return new WindowsWindow(props);
+    return std::make_unique<WindowsWindow>(WindowsWindow(props));
 }

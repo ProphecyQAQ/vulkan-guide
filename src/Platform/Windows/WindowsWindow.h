@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Window.h>
+#include <Platform/Window.h>
 #include <SDL.h>
 
 class WindowsWindow : public Window
