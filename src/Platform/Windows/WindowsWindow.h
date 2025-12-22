@@ -2,6 +2,7 @@
 
 #include <Platform/Window.h>
 #include <SDL.h>
+#include <vector>
 
 class WindowsWindow : public Window
 {

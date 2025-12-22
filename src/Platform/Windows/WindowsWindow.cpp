@@ -1,4 +1,5 @@
-#include <Windows/WindowsWindow.h>
+#include <Platform/Windows/WindowsWindow.h>
+#include <SDL_vulkan.h>
 
 WindowsWindow::WindowsWindow(const WindowProps& props)
     :props(props)

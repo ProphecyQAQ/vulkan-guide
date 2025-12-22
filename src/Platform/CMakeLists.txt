@@ -4,7 +4,7 @@ add_library(platform
 )
 
 target_include_directories(platform
-    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
+    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..
 )
 
 target_link_libraries(platform

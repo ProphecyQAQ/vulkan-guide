@@ -1,8 +1,12 @@
 #include <Platform/Window.h>
+#include <Core/Log.h>
 
 int main()
 {
-    WindowProps props("My Hazel Window", 1280, 720);
+    // Init log
+    Core::Logger::init();
+
+    WindowProps props("Render Window", 1280, 720);
     std::unique_ptr<Window> window = Window::create(props);
 
     window->onUpdate();

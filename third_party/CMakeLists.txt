@@ -6,9 +6,9 @@ add_library(vma INTERFACE)
 
 add_library(stb_image INTERFACE)
 add_library(magic_enum INTERFACE)
+add_library(spdlog INTERFACE)
 
 add_subdirectory(fastgltf)
-add_subdirectory(fmt EXCLUDE_FROM_ALL)
 add_subdirectory(SDL EXCLUDE_FROM_ALL)
 
 target_sources(vkbootstrap PRIVATE 
@@ -53,3 +53,4 @@ target_link_libraries(imgui PUBLIC Vulkan::Vulkan SDL2::SDL2)
 
 target_include_directories(stb_image INTERFACE stb_image)
 target_include_directories(magic_enum INTERFACE magic_enum)
+target_include_directories(spdlog INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
