@@ -23,7 +23,7 @@ public:
         return props.Title;
     }
 
-    virtual std::vector<const char*> getVulkanExtensions() const override;
+    std::vector<const char*> getVulkanExtensions() const;
 
     virtual void onUpdate() override;
 private:
