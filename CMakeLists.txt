@@ -7,6 +7,13 @@ project ("vulkan_guide")
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Enable Unicode source (UTF-8) for MSVC builds to satisfy
+# "Unicode support requires compiling with /utf-8" requirements.
+if (MSVC)
+  message(STATUS "Enabling MSVC /utf-8 for Unicode source support")
+  add_compile_options(/utf-8)
+endif()
+
 find_package(Vulkan REQUIRED)
 
 add_subdirectory(third_party)
