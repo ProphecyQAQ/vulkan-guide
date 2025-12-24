@@ -1,5 +1,4 @@
 add_library(platform
-    Window.cpp
     Windows/WindowsWindow.cpp
 )
 

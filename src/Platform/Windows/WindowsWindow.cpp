@@ -1,5 +1,6 @@
-#include "Core/Log.h"
+#include <Core/Log.h>
 #include <Platform/Windows/WindowsWindow.h>
+#include <SDL.h>
 #include <SDL_vulkan.h>
 
 WindowsWindow::WindowsWindow(const WindowProps& props)

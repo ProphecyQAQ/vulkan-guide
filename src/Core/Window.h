@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <memory>
 
 struct WindowProps
 {
@@ -14,14 +15,18 @@ struct WindowProps
     uint32_t Height;
 };
 
-class IWindow
+class Window
 {
 public:
-    virtual ~IWindow() = default;
+    virtual ~Window() = default;
 
     virtual uint32_t getWidth() const = 0;
     virtual uint32_t getHeight() const = 0;
     virtual std::string getTitle() const = 0;
 
+    virtual void* getNativeWindow() const = 0; 
+
     virtual void onUpdate() = 0;
+
+    static std::unique_ptr<Window> create(const WindowProps& props = WindowProps());
 };

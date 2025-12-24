@@ -1,8 +1,9 @@
 #pragma once
 
-#include <Platform/Window.h>
-#include <SDL.h>
+#include <Core/Window.h>
 #include <vector>
+
+struct SDL_Window;
 
 class WindowsWindow : public Window
 {
@@ -22,6 +23,10 @@ public:
     {
         return props.Title;
     }
+
+    virtual void* getNativeWindow() const override {
+        return reinterpret_cast<void*>(window);
+    } 
 
     std::vector<const char*> getVulkanExtensions() const;
 

@@ -1,4 +1,4 @@
-#include <Platform/Window.h>
+#include <Core/Window.h>
 #include <Core/Log.h>
 
 int main()
