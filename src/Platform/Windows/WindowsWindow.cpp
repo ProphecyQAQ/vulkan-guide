@@ -32,7 +32,14 @@ std::vector<const char*> WindowsWindow::getVulkanExtensions() const
 {
     unsigned int sdlExtensionCount = 0;
     std::vector<const char*> sdlExtensions;
+    if (SDL_Vulkan_GetInstanceExtensions(window, &sdlExtensionCount, sdlExtensions.data()) == false)
+    {
+        LOG_WARN("[VulkanEngine] [init_vulkan] get instance extestions failed");
+        return sdlExtensions;
+    }
+
     sdlExtensions.resize(sdlExtensionCount);
+
     if (SDL_Vulkan_GetInstanceExtensions(window, &sdlExtensionCount, sdlExtensions.data()) == false)
     {
         LOG_WARN("[VulkanEngine] [init_vulkan] get instance extestions failed");

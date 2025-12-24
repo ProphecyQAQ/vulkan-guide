@@ -28,7 +28,7 @@ public:
         return reinterpret_cast<void*>(window);
     } 
 
-    std::vector<const char*> getVulkanExtensions() const;
+    virtual std::vector<const char*> getVulkanExtensions() const override;
 
     virtual void onUpdate() override;
 private:

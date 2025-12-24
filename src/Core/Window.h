@@ -2,6 +2,7 @@
 
 #include <string>
 #include <memory>
+#include <vector>
 
 struct WindowProps
 {
@@ -27,6 +28,8 @@ public:
     virtual void* getNativeWindow() const = 0; 
 
     virtual void onUpdate() = 0;
+
+    virtual std::vector<const char*> getVulkanExtensions() const = 0;
 
     static std::unique_ptr<Window> create(const WindowProps& props = WindowProps());
 };
