@@ -1,3 +1,4 @@
+#include "Core/Log.h"
 #include <Platform/Windows/WindowsWindow.h>
 #include <SDL_vulkan.h>
 
@@ -24,6 +25,25 @@ WindowsWindow::~WindowsWindow()
 {
     SDL_DestroyWindow(window);
     SDL_Quit();
+}
+
+std::vector<const char*> WindowsWindow::getVulkanExtensions() const
+{
+    unsigned int sdlExtensionCount = 0;
+    std::vector<const char*> sdlExtensions;
+    sdlExtensions.resize(sdlExtensionCount);
+    if (SDL_Vulkan_GetInstanceExtensions(window, &sdlExtensionCount, sdlExtensions.data()) == false)
+    {
+        LOG_WARN("[VulkanEngine] [init_vulkan] get instance extestions failed");
+        return sdlExtensions;
+    }
+
+    for (unsigned int i = 0; i < sdlExtensionCount; i ++)
+    {
+        LOG_INFO("[VulkanEngine] [init_valkan] SDL Extension: {}", sdlExtensions[i]);
+    }
+
+    return sdlExtensions;
 }
 
 void WindowsWindow::onUpdate()

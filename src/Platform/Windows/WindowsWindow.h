@@ -23,6 +23,8 @@ public:
         return props.Title;
     }
 
+    virtual std::vector<const char*> getVulkanExtensions() const override;
+
     virtual void onUpdate() override;
 private:
     SDL_Window* window;
