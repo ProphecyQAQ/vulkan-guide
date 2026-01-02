@@ -1,5 +1,7 @@
 add_library(VulkanRHI
     VulkanContext.cpp
+    VulkanSwapChain.cpp
+    VulkanDevice.cpp
     VUlkanHelper.cpp
 )
 

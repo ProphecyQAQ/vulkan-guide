@@ -1,5 +1,7 @@
 #pragma once
 
+#include <algorithm>
+
 #include <vulkan/vulkan.h>
 #include <vulkan/vk_enum_string_helper.h>
 #include <vk_mem_alloc.h>
@@ -20,8 +22,20 @@
         }                                                               \
     } while (0)
 
+constexpr uint32_t FRAME_OVERLAP = 2;
+
 struct SwapChainSupportDetails {
     VkSurfaceCapabilitiesKHR capabilities;
     std::vector<VkSurfaceFormatKHR> formats;
     std::vector<VkPresentModeKHR> presentModes;
+};
+
+struct QueueFamilyIndices 
+{
+    std::optional<uint32_t> graphicsFamily;
+    std::optional<uint32_t> presentFamily;
+
+    bool is_complete(){
+        return graphicsFamily.has_value() && presentFamily.has_value();
+    }
 };

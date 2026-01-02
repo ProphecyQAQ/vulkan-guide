@@ -1,7 +1,10 @@
 #pragma once
 
+#include <Core/Window.h>
 #include <RHI/GraphicsContext.h>
 #include <Vulkan/VulkanPCH.h>
+#include <Vulkan/VulkanSwapChain.h>
+#include <Vulkan/VulkanDevice.h>
 
 class VulkanContext : public GraphicsContext
 {
@@ -9,17 +12,17 @@ public:
     virtual ~VulkanContext() = default;
 
     virtual void init(Window* window) override;
-private:
-	bool isDeviceSuitable(VkPhysicalDevice physicalDevice);
+	QueueFamilyIndices getQueueFamilyIndices() const { return queueFamilyIndices; }
 private:
 	VkInstance instance;
 	VkDebugUtilsMessengerEXT debugMessager; // Vulkan debug output handle
-	VkPhysicalDevice chosenGPU;
-	VkDevice device;
-	VkQueue graphicsQueue;
 
-	// presentation
-	VkSurfaceKHR surface;
+	VulkanDevice *vulkanDevice;
 
 	std::vector<const char*> deviceExtensions;
+
+	QueueFamilyIndices queueFamilyIndices;
+
+	VulkanSwapChain *swapChain;
+	VkSurfaceKHR surface;
 };
