@@ -11,6 +11,15 @@ VulkanSwapChain::VulkanSwapChain(VkInstance instance, VulkanDevice *vulkanDevice
     vulkanDevice->setPresnentQueue(surface);
 }
 
+VulkanSwapChain::~VulkanSwapChain()
+{
+    vkDestroySwapchainKHR(vulkanDevice->getDevice(), swapchain, nullptr);
+    for (VkImageView &view : swapchainImageViews)
+    {
+        vkDestroyImageView(vulkanDevice->getDevice(), view, nullptr);
+    }
+}
+
 void VulkanSwapChain::createSwapChain(VkInstance instance, uint32_t width, uint32_t height)
 {
     SwapChainSupportDetails swapChainSupport = VulkanHeaplerLibrary::querySwapChainSupport(vulkanDevice->getPhysicalDevice(), surface);

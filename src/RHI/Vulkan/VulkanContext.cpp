@@ -7,6 +7,17 @@
 #define VMA_IMPLEMENTATION
 #include <vk_mem_alloc.h>
 
+VulkanContext::~VulkanContext()
+{
+    vmaDestroyAllocator(allocator);
+
+    delete swapChain;
+    delete vulkanDevice;
+    
+    vkDestroySurfaceKHR(instance, surface, nullptr);
+    vkDestroyInstance(instance, nullptr);
+}
+
 void VulkanContext::init(Window* window)
 {
     deviceExtensions = {

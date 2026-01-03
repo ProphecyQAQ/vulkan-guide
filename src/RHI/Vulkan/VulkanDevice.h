@@ -6,6 +6,7 @@ class VulkanDevice
 {
 public:
     VulkanDevice(VkInstance instance);
+    ~VulkanDevice();
 
     VkPhysicalDevice getPhysicalDevice() const { return chosenGPU; }
     VkDevice getDevice() const { return device; }

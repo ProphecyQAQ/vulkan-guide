@@ -9,6 +9,7 @@ class VulkanSwapChain
 {
 public:
     VulkanSwapChain(VkInstance instance, VulkanDevice* vulkanDevice, VkSurfaceKHR surface, Window *window, uint32_t width, uint32_t height);
+    ~VulkanSwapChain();
 
     SwapChainSupportDetails getSwapChainSupportDetails();
 private:

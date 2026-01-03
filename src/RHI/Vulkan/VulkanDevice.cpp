@@ -77,6 +77,11 @@ VulkanDevice::VulkanDevice(VkInstance instance)
     createDevice();
 }
 
+VulkanDevice::~VulkanDevice()
+{
+    vkDestroyDevice(device, nullptr);
+}
+
 VkPhysicalDevice VulkanDevice::selectPhysicalDevice(VkInstance instance)
 {
     std::vector<VkPhysicalDevice> physicalDevices = VulkanHeaplerLibrary::getPhysicalDevices(instance);

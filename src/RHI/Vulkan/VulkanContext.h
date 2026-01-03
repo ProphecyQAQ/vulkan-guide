@@ -9,7 +9,7 @@
 class VulkanContext : public GraphicsContext
 {
 public:
-    virtual ~VulkanContext() = default;
+    virtual ~VulkanContext();
 
     virtual void init(Window* window) override;
 	QueueFamilyIndices getQueueFamilyIndices() const { return queueFamilyIndices; }
