@@ -57,6 +57,38 @@ void VulkanSwapChain::createSwapChain(VkInstance instance, uint32_t width, uint3
     {
         throw std::runtime_error("[VulkanEngine] [init_swapchain] failed to create swap chain!");
     }
+
+    uint32_t swapChainImageCount;
+    vkGetSwapchainImagesKHR(vulkanDevice->getDevice(), swapchain, &swapChainImageCount, nullptr);
+    swapchainImages.resize(swapChainImageCount);
+    vkGetSwapchainImagesKHR(vulkanDevice->getDevice(), swapchain, &swapChainImageCount, swapchainImages.data());
+
+    // create image view for swap chain image
+    swapchainImageViews.resize(swapChainImageCount);
+    for (uint32_t i = 0; i < swapChainImageCount; i ++)
+    {
+        VkImageViewCreateInfo viewCreateInfo{};
+        viewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        viewCreateInfo.image = swapchainImages[i];
+        viewCreateInfo.format = swapchainImageFormat;
+        viewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        
+        viewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+        viewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+        viewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+        viewCreateInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+
+        viewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        viewCreateInfo.subresourceRange.baseMipLevel = 0;
+        viewCreateInfo.subresourceRange.levelCount = 1;
+        viewCreateInfo.subresourceRange.baseArrayLayer = 0;
+        viewCreateInfo.subresourceRange.layerCount = 1;
+        
+        if (vkCreateImageView(vulkanDevice->getDevice(), &viewCreateInfo, nullptr, &swapchainImageViews[i]) != VK_SUCCESS)
+        {
+            throw std::runtime_error("[VulkanEngine] [init_swapchain] failed to create image views!");
+        }
+    }
 }
 
 SwapChainSupportDetails VulkanSwapChain::getSwapChainSupportDetails()
