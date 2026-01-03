@@ -19,6 +19,8 @@ private:
     VkPhysicalDevice chosenGPU;
 	VkDevice device;
 	VkQueue graphicsQueue;
+	VkQueue computeQueue;
+	VkQueue transferQueue;
 
 	std::vector<const char*> deviceExtensions;
     std::vector<const char*> validationLayer;

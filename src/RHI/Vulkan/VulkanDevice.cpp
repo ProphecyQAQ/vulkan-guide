@@ -197,4 +197,17 @@ void VulkanDevice::createDevice()
     {
         throw std::runtime_error("[VulkanEngine] [init_valkan] failed to create logical device!");
     }
+
+    // get queue
+    vkGetDeviceQueue(device, graphicsQueueFamilyIndex, 0, &graphicsQueue);
+    if (computeQueueFamilyIndex != -1)
+    {
+        vkGetDeviceQueue(device, computeQueueFamilyIndex, 0, &computeQueue);
+    }
+    if (transferQueueFamilyIndex != -1)
+    {
+        vkGetDeviceQueue(device, transferQueueFamilyIndex, 0, &transferQueue);
+    }
+
+    
 }
