@@ -4,6 +4,9 @@
 #include <SDL_vulkan.h>
 #include <Vulkan/VulkanHelper.h>
 
+#define VMA_IMPLEMENTATION
+#include <vk_mem_alloc.h>
+
 void VulkanContext::init(Window* window)
 {
     deviceExtensions = {
@@ -37,4 +40,12 @@ void VulkanContext::init(Window* window)
 
     // Init swapchain
     swapChain = new VulkanSwapChain(instance, vulkanDevice, surface, window, 800, 600);
+
+    // init vma allocator
+    VmaAllocatorCreateInfo vmaCreateInfo{};
+    vmaCreateInfo.physicalDevice = vulkanDevice->getPhysicalDevice();
+    vmaCreateInfo.device = vulkanDevice->getDevice();
+    vmaCreateInfo.instance = instance;
+    vmaCreateInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
+    vmaCreateAllocator(&vmaCreateInfo, &allocator);
 }

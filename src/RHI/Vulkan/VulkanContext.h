@@ -25,4 +25,6 @@ private:
 
 	VulkanSwapChain *swapChain;
 	VkSurfaceKHR surface;
+
+	VmaAllocator allocator;
 };
