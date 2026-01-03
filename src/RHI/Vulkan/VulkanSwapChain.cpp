@@ -7,6 +7,8 @@ VulkanSwapChain::VulkanSwapChain(VkInstance instance, VulkanDevice *vulkanDevice
     : surface(surface), vulkanDevice(vulkanDevice), window(window)
 {
     createSwapChain(instance, width, height);
+
+    vulkanDevice->setPresnentQueue(surface);
 }
 
 void VulkanSwapChain::createSwapChain(VkInstance instance, uint32_t width, uint32_t height)
@@ -41,6 +43,7 @@ void VulkanSwapChain::createSwapChain(VkInstance instance, uint32_t width, uint3
     createInfo.imageArrayLayers = 1;
     createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
+    // only exclusive mode
     createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
     createInfo.preTransform = swapChainSupport.capabilities.currentTransform;

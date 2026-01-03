@@ -69,6 +69,10 @@ VulkanDevice::VulkanDevice(VkInstance instance)
         "VK_LAYER_KHRONOS_validation"
     };
 
+    graphicsQueueFamilyIndex = -1;
+    computeQueueFamilyIndex = -1;
+    transferQueueFamilyIndex = -1;
+
     chosenGPU = selectPhysicalDevice(instance);
     createDevice();
 }
@@ -98,9 +102,6 @@ void VulkanDevice::createDevice()
     std::vector<VkQueueFamilyProperties> queueFamilyProperties  = VulkanHeaplerLibrary::getQueueFamily(chosenGPU);
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-    int32_t graphicsQueueFamilyIndex = -1;
-    int32_t computeQueueFamilyIndex = -1;
-    int32_t transferQueueFamilyIndex = -1;
     int32_t queueNum = 0;
     for (int32_t familyIndex = 0; familyIndex < queueFamilyProperties.size(); familyIndex ++)
     {
@@ -207,7 +208,26 @@ void VulkanDevice::createDevice()
     if (transferQueueFamilyIndex != -1)
     {
         vkGetDeviceQueue(device, transferQueueFamilyIndex, 0, &transferQueue);
-    }
+    }   
+}
 
-    
+void VulkanDevice::setPresnentQueue(VkSurfaceKHR surface)
+{
+    static bool bSetPresentQueue = false;
+
+    if (!bSetPresentQueue)
+    {
+        // check graphics queue family support present
+        VkBool32 presentSupport = false;
+        vkGetPhysicalDeviceSurfaceSupportKHR(chosenGPU, graphicsQueueFamilyIndex, surface, &presentSupport);
+        if (presentSupport)
+        {
+            LOG_INFO("Set present queue to graphics queue");
+            bSetPresentQueue = true;
+        }
+        else
+        {
+            throw std::runtime_error("[VulkanDevice] [setPresnentQueue] graphics queue does not support present!");
+        }
+    }
 }
