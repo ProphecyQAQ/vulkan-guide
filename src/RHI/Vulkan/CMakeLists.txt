@@ -2,7 +2,8 @@ add_library(VulkanRHI
     VulkanContext.cpp
     VulkanSwapChain.cpp
     VulkanDevice.cpp
-    VUlkanHelper.cpp
+    VulkanCommandBuffer.cpp
+    VulkanHelper.cpp
 )
 
 target_include_directories(VulkanRHI
