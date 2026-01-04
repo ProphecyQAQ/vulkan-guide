@@ -34,7 +34,7 @@ std::vector<const char*> WindowsWindow::getVulkanExtensions() const
     std::vector<const char*> sdlExtensions;
     if (SDL_Vulkan_GetInstanceExtensions(window, &sdlExtensionCount, sdlExtensions.data()) == false)
     {
-        LOG_WARN("[VulkanEngine] [init_vulkan] get instance extestions failed");
+        LOG_WARN("Get instance extestions failed");
         return sdlExtensions;
     }
 
@@ -42,13 +42,13 @@ std::vector<const char*> WindowsWindow::getVulkanExtensions() const
 
     if (SDL_Vulkan_GetInstanceExtensions(window, &sdlExtensionCount, sdlExtensions.data()) == false)
     {
-        LOG_WARN("[VulkanEngine] [init_vulkan] get instance extestions failed");
+        LOG_WARN("Get instance extestions failed");
         return sdlExtensions;
     }
 
     for (unsigned int i = 0; i < sdlExtensionCount; i ++)
     {
-        LOG_INFO("[VulkanEngine] [init_valkan] SDL Extension: {}", sdlExtensions[i]);
+        LOG_INFO("SDL Extension: {}", sdlExtensions[i]);
     }
 
     return sdlExtensions;
