@@ -20,8 +20,8 @@ VulkanCommandBuffer::~VulkanCommandBuffer()
 // ------------------------------ VulkanCommandBuffer -----------------------
 
 // ------------------------------ VulkanCommandBufferPool -----------------------
-VulkanCommandBufferPool::VulkanCommandBufferPool(VulkanDevice& device, uint32_t queueFamilyIndex, VulkanCommandBufferType type)
-    : device(device), queueFamilyIndex(queueFamilyIndex), type(type)
+VulkanCommandBufferPool::VulkanCommandBufferPool(VulkanDevice& device, VulkanCommandBufferType type)
+    : device(device), queueFamilyIndex(device.getGraphicsQueueFamilyIndex()), type(type)
 {
     VkCommandPoolCreateInfo info = {};
     info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;

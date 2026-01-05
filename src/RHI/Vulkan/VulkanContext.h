@@ -5,6 +5,15 @@
 #include <Vulkan/VulkanPCH.h>
 #include <Vulkan/VulkanSwapChain.h>
 #include <Vulkan/VulkanDevice.h>
+#include <Vulkan/VulkanCommandBuffer.h>
+
+struct FrameContext
+{
+	FrameContext(VulkanDevice& device);
+	~FrameContext();
+
+	VulkanCommandBufferPool* commandBufferPool;
+};
 
 class VulkanContext : public GraphicsContext
 {
@@ -12,6 +21,7 @@ public:
     virtual ~VulkanContext();
 
     virtual void init(Window* window) override;
+	void initCommandBuffer();
 	QueueFamilyIndices getQueueFamilyIndices() const { return queueFamilyIndices; }
 private:
 	VkInstance instance;
@@ -27,4 +37,7 @@ private:
 	VkSurfaceKHR surface;
 
 	VmaAllocator allocator;
+
+	// draw ctx
+	VulkanCommandBufferPool *immediateCmdPool;
 };

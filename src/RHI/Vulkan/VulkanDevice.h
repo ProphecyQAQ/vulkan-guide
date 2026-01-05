@@ -11,6 +11,7 @@ public:
     VkPhysicalDevice getPhysicalDevice() const { return chosenGPU; }
     VkDevice getDevice() const { return device; }
     VkQueue getGraphicsQueue() const { return graphicsQueue; }
+    int32_t getGraphicsQueueFamilyIndex() const { return graphicsQueueFamilyIndex; }
 
     void setPresnentQueue(VkSurfaceKHR surface);
 private:

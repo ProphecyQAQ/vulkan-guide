@@ -14,7 +14,7 @@ enum VulkanCommandBufferType
 class VulkanCommandBufferPool
 {
 public:
-    VulkanCommandBufferPool(VulkanDevice& device, uint32_t queueFamilyIndex, VulkanCommandBufferType type);
+    VulkanCommandBufferPool(VulkanDevice& device, VulkanCommandBufferType type);
     ~VulkanCommandBufferPool();
 
     VulkanCommandBuffer* create();

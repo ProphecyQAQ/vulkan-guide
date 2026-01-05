@@ -1,17 +1,34 @@
+#include <vector>
 #include <Core/Log.h>
 #include <Vulkan/VulkanContext.h>
-#include <vector>
 #include <SDL_vulkan.h>
 #include <Vulkan/VulkanHelper.h>
 
 #define VMA_IMPLEMENTATION
 #include <vk_mem_alloc.h>
 
+// ------------------------------ FrameContext -----------------------
+FrameContext::FrameContext(VulkanDevice& device)
+{
+    commandBufferPool = new VulkanCommandBufferPool(device, VulkanCommandBufferType::VK_CMD_BUFFER_TYPE_PRIMARY);
+    commandBufferPool->create();
+}
+
+FrameContext::~FrameContext()
+{
+    delete commandBufferPool;
+}
+
+// ------------------------------ FrameContext -----------------------
+
+
 VulkanContext::~VulkanContext()
 {
     vmaDestroyAllocator(allocator);
 
     delete swapChain;
+    delete immediateCmdPool;
+
     delete vulkanDevice;
     
     vkDestroySurfaceKHR(instance, surface, nullptr);
@@ -59,4 +76,14 @@ void VulkanContext::init(Window* window)
     vmaCreateInfo.instance = instance;
     vmaCreateInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
     vmaCreateAllocator(&vmaCreateInfo, &allocator);
+
+    // command buffer
+    initCommandBuffer();
+}
+
+void VulkanContext::initCommandBuffer()
+{
+    // create immediate command pool and buffer
+    immediateCmdPool = new VulkanCommandBufferPool(*vulkanDevice, VulkanCommandBufferType::VK_CMD_BUFFER_TYPE_PRIMARY);
+    immediateCmdPool->create();
 }
