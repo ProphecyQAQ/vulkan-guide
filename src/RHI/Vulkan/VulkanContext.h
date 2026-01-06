@@ -12,7 +12,13 @@ struct FrameContext
 	FrameContext(VulkanDevice& device);
 	~FrameContext();
 
+	VulkanDevice& device;
+
 	VulkanCommandBufferPool* commandBufferPool;
+	VulkanCommandBuffer* commandBuffer;
+
+	VkFence renderFence;
+	VkSemaphore swapchainSemaphore, renderSemaphore;
 };
 
 class VulkanContext : public GraphicsContext
@@ -21,10 +27,10 @@ public:
     virtual ~VulkanContext();
 
     virtual void init(Window* window) override;
-	void initImmediateCtx();
 	QueueFamilyIndices getQueueFamilyIndices() const { return queueFamilyIndices; }
 private:
-	VkFenceCreateInfo fenceCreateInfo(VkFenceCreateFlags flags = 0);
+	void initImmediateCtx();
+	void initFrameContext();
 private:
 	VkInstance instance;
 	VkDebugUtilsMessengerEXT debugMessager; // Vulkan debug output handle
@@ -43,4 +49,6 @@ private:
 	// draw ctx
 	VulkanCommandBufferPool *immediateCmdPool;
 	VkFence immediateFence;
+
+	std::vector<FrameContext*> frameContexts;
 };

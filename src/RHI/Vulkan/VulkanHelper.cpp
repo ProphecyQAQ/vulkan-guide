@@ -96,3 +96,23 @@ VkPresentModeKHR VulkanHeaplerLibrary::selectSwapPresentMode(const std::vector<V
 
     return VK_PRESENT_MODE_FIFO_KHR;
 }
+
+//> create info helper
+VkFenceCreateInfo VulkanHeaplerLibrary::fenceCreateInfo(VkFenceCreateFlags flags)
+{
+    VkFenceCreateInfo info = {};
+    info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    info.pNext = nullptr;
+    info.flags = flags;
+    return info;
+}
+
+VkSemaphoreCreateInfo VulkanHeaplerLibrary::semaphoreCreateInfo(VkSemaphoreCreateFlags flags /*= 0*/)
+{
+    VkSemaphoreCreateInfo info = {};
+    info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+    info.pNext = nullptr;
+    info.flags = flags;
+    return info;
+}
+//>

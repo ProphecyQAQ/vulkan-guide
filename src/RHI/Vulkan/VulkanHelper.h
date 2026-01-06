@@ -11,4 +11,7 @@ public:
     static SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
     static VkSurfaceFormatKHR selectSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
     static VkPresentModeKHR selectSwapPresentMode(const std::vector<VkPresentModeKHR>& availableModes);
+
+    static VkFenceCreateInfo fenceCreateInfo(VkFenceCreateFlags flags = 0);
+    static VkSemaphoreCreateInfo semaphoreCreateInfo(VkSemaphoreCreateFlags flags = 0);
 };

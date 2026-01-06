@@ -9,14 +9,27 @@
 
 // ------------------------------ FrameContext -----------------------
 FrameContext::FrameContext(VulkanDevice& device)
+    : device(device)
 {
     commandBufferPool = new VulkanCommandBufferPool(device, VulkanCommandBufferType::VK_CMD_BUFFER_TYPE_PRIMARY);
-    commandBufferPool->create();
+    commandBuffer = commandBufferPool->create();
+
+    VkFenceCreateInfo fenceInfo = VulkanHeaplerLibrary::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
+    VK_CHECK(vkCreateFence(device.getDevice(), &fenceInfo, nullptr, &renderFence));
+
+    VkSemaphoreCreateInfo semaphoreInfo = VulkanHeaplerLibrary::semaphoreCreateInfo();
+    VK_CHECK(vkCreateSemaphore(device.getDevice(), &semaphoreInfo, nullptr, &swapchainSemaphore));
+    VK_CHECK(vkCreateSemaphore(device.getDevice(), &semaphoreInfo, nullptr, &renderSemaphore));
 }
 
 FrameContext::~FrameContext()
 {
     delete commandBufferPool;
+
+    vkDestroyFence(device.getDevice(), renderFence, nullptr);
+
+    vkDestroySemaphore(device.getDevice(), swapchainSemaphore, nullptr);
+    vkDestroySemaphore(device.getDevice(), renderSemaphore, nullptr);
 }
 
 // ------------------------------ FrameContext -----------------------
@@ -28,25 +41,21 @@ VulkanContext::~VulkanContext()
 
     delete swapChain;
 
+    // clean immediate ctx
     vkDestroyFence(vulkanDevice->getDevice(), immediateFence, nullptr);
     delete immediateCmdPool;
+
+    // clean frame ctx
+    for (FrameContext* ctx : frameContexts)
+    {
+        delete ctx;
+    }
 
     delete vulkanDevice;
     
     vkDestroySurfaceKHR(instance, surface, nullptr);
     vkDestroyInstance(instance, nullptr);
 }
-
-//> create info helper
-VkFenceCreateInfo VulkanContext::fenceCreateInfo(VkFenceCreateFlags flags)
-{
-    VkFenceCreateInfo info = {};
-    info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-    info.pNext = nullptr;
-    info.flags = flags;
-    return info;
-}
-//>
 
 void VulkanContext::init(Window* window)
 {
@@ -92,6 +101,9 @@ void VulkanContext::init(Window* window)
 
     // Immdiate context init
     initImmediateCtx();
+    
+    // Frame context init
+    initFrameContext();
 }
 
 void VulkanContext::initImmediateCtx()
@@ -100,6 +112,14 @@ void VulkanContext::initImmediateCtx()
     immediateCmdPool = new VulkanCommandBufferPool(*vulkanDevice, VulkanCommandBufferType::VK_CMD_BUFFER_TYPE_PRIMARY);
     immediateCmdPool->create();
 
-    VkFenceCreateInfo fenceInfo = this->fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
+    VkFenceCreateInfo fenceInfo = VulkanHeaplerLibrary::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
     VK_CHECK(vkCreateFence(vulkanDevice->getDevice(), &fenceInfo, nullptr, &immediateFence));
+}
+
+void VulkanContext::initFrameContext()
+{
+    for (int32_t idx = 0; idx < FRAME_OVERLAP; idx ++)
+    {
+        frameContexts.push_back(new FrameContext(*vulkanDevice));
+    }
 }
