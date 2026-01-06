@@ -27,6 +27,8 @@ VulkanContext::~VulkanContext()
     vmaDestroyAllocator(allocator);
 
     delete swapChain;
+
+    vkDestroyFence(vulkanDevice->getDevice(), immediateFence, nullptr);
     delete immediateCmdPool;
 
     delete vulkanDevice;
@@ -34,6 +36,17 @@ VulkanContext::~VulkanContext()
     vkDestroySurfaceKHR(instance, surface, nullptr);
     vkDestroyInstance(instance, nullptr);
 }
+
+//> create info helper
+VkFenceCreateInfo VulkanContext::fenceCreateInfo(VkFenceCreateFlags flags)
+{
+    VkFenceCreateInfo info = {};
+    info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    info.pNext = nullptr;
+    info.flags = flags;
+    return info;
+}
+//>
 
 void VulkanContext::init(Window* window)
 {
@@ -77,13 +90,16 @@ void VulkanContext::init(Window* window)
     vmaCreateInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
     vmaCreateAllocator(&vmaCreateInfo, &allocator);
 
-    // command buffer
-    initCommandBuffer();
+    // Immdiate context init
+    initImmediateCtx();
 }
 
-void VulkanContext::initCommandBuffer()
+void VulkanContext::initImmediateCtx()
 {
     // create immediate command pool and buffer
     immediateCmdPool = new VulkanCommandBufferPool(*vulkanDevice, VulkanCommandBufferType::VK_CMD_BUFFER_TYPE_PRIMARY);
     immediateCmdPool->create();
+
+    VkFenceCreateInfo fenceInfo = this->fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
+    VK_CHECK(vkCreateFence(vulkanDevice->getDevice(), &fenceInfo, nullptr, &immediateFence));
 }

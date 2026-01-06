@@ -21,8 +21,10 @@ public:
     virtual ~VulkanContext();
 
     virtual void init(Window* window) override;
-	void initCommandBuffer();
+	void initImmediateCtx();
 	QueueFamilyIndices getQueueFamilyIndices() const { return queueFamilyIndices; }
+private:
+	VkFenceCreateInfo fenceCreateInfo(VkFenceCreateFlags flags = 0);
 private:
 	VkInstance instance;
 	VkDebugUtilsMessengerEXT debugMessager; // Vulkan debug output handle
@@ -40,4 +42,5 @@ private:
 
 	// draw ctx
 	VulkanCommandBufferPool *immediateCmdPool;
+	VkFence immediateFence;
 };
