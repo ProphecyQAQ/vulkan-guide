@@ -1,3 +1,4 @@
+#include "VulkanDescriptorSet.h"
 #include <vector>
 #include <Core/Log.h>
 #include <Vulkan/VulkanContext.h>
@@ -14,6 +15,8 @@ FrameContext::FrameContext(VulkanDevice& device)
     commandBufferPool = new VulkanCommandBufferPool(device, VulkanCommandBufferType::VK_CMD_BUFFER_TYPE_PRIMARY);
     commandBuffer = commandBufferPool->create();
 
+    frameDescriptorPoolSet = new VulkanDescriptorPoolSet(device);
+
     VkFenceCreateInfo fenceInfo = VulkanHeaplerLibrary::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
     VK_CHECK(vkCreateFence(device.getDevice(), &fenceInfo, nullptr, &renderFence));
 
@@ -25,13 +28,12 @@ FrameContext::FrameContext(VulkanDevice& device)
 FrameContext::~FrameContext()
 {
     delete commandBufferPool;
-
+    delete frameDescriptorPoolSet;
     vkDestroyFence(device.getDevice(), renderFence, nullptr);
 
     vkDestroySemaphore(device.getDevice(), swapchainSemaphore, nullptr);
     vkDestroySemaphore(device.getDevice(), renderSemaphore, nullptr);
 }
-
 // ------------------------------ FrameContext -----------------------
 
 
@@ -45,12 +47,16 @@ VulkanContext::~VulkanContext()
     vkDestroyFence(vulkanDevice->getDevice(), immediateFence, nullptr);
     delete immediateCmdPool;
 
-    // clean frame ctx
+    // clean frame ctx  
     for (FrameContext* ctx : frameContexts)
     {
         delete ctx;
     }
 
+    // delete global descriptor pool set
+    delete globalDescriptorPoolSet;
+
+    // delete vulkan device
     delete vulkanDevice;
     
     vkDestroySurfaceKHR(instance, surface, nullptr);
@@ -104,6 +110,9 @@ void VulkanContext::init(Window* window)
     
     // Frame context init
     initFrameContext();
+
+    // global descriptor pool set
+    globalDescriptorPoolSet = new VulkanDescriptorPoolSet(*vulkanDevice);
 }
 
 void VulkanContext::initImmediateCtx()

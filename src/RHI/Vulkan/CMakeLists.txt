@@ -3,6 +3,7 @@ add_library(VulkanRHI
     VulkanSwapChain.cpp
     VulkanDevice.cpp
     VulkanCommandBuffer.cpp
+    VulkanDescriptorSet.cpp
     VulkanHelper.cpp
 )
 

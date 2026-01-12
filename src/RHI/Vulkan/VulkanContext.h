@@ -6,6 +6,7 @@
 #include <Vulkan/VulkanSwapChain.h>
 #include <Vulkan/VulkanDevice.h>
 #include <Vulkan/VulkanCommandBuffer.h>
+#include <Vulkan/VulkanDescriptorSet.h>
 
 struct FrameContext
 {
@@ -16,6 +17,8 @@ struct FrameContext
 
 	VulkanCommandBufferPool* commandBufferPool;
 	VulkanCommandBuffer* commandBuffer;
+
+	VulkanDescriptorPoolSet* frameDescriptorPoolSet;
 
 	VkFence renderFence;
 	VkSemaphore swapchainSemaphore, renderSemaphore;
@@ -51,4 +54,6 @@ private:
 	VkFence immediateFence;
 
 	std::vector<FrameContext*> frameContexts;
+
+	VulkanDescriptorPoolSet* globalDescriptorPoolSet;
 };
