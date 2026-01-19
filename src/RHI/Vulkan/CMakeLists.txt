@@ -4,6 +4,7 @@ add_library(VulkanRHI
     VulkanDevice.cpp
     VulkanCommandBuffer.cpp
     VulkanDescriptorSet.cpp
+    VulkanPipeline.cpp
     VulkanHelper.cpp
 )
 
