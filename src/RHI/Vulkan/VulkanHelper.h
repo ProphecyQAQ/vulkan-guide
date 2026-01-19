@@ -14,4 +14,7 @@ public:
 
     static VkFenceCreateInfo fenceCreateInfo(VkFenceCreateFlags flags = 0);
     static VkSemaphoreCreateInfo semaphoreCreateInfo(VkSemaphoreCreateFlags flags = 0);
+
+    static VkPipelineShaderStageCreateInfo pipelineShaderStageCreateInfo(VkShaderStageFlagBits stage, VkShaderModule shaderModule, const char * entry = "main");
+    static VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo(VkPipelineLayoutCreateFlags flags = 0);
 };
