@@ -22,7 +22,6 @@ public:
 
     // get descriptor set layout
     VulkanDescriptorSetLayout::Builder& getDescriptorSetLayoutBuilder() { return discriptorLayoutBuilder; }
-    void addDescriptorSetLayout(VkDescriptorSetLayout layout) { descriptorSetLayouts.push_back(layout); }
 
     // set push constant
     void setPushConstantType(uint32_t size, VkShaderStageFlags shaderStage, uint32_t offset = 0);
@@ -51,8 +50,8 @@ private:
     VulkanDevice& device;
 
     VulkanDescriptorSetLayout::Builder discriptorLayoutBuilder;
-    VulkanDescriptorSetLayout* descriptorLayout;
-    std::vector<VkDescriptorSetLayout> descriptorSetLayouts;
+    VulkanDescriptorSetLayout* commonDescriptorLayout;
+    VulkanDescriptorSetLayout* descriptorSetLayout;
 
     // push constant
     VkPushConstantRange pushConstantRange;

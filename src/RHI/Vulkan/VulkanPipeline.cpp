@@ -3,7 +3,7 @@
 
 // ----------------- VulkanLayout ------------------
 VulkanLayout::VulkanLayout(VulkanDevice& device)
-    : device(device), descriptorLayout(nullptr)
+    : device(device), descriptorSetLayout(nullptr), commonDescriptorLayout(nullptr)
 {
     for (VkShaderModule& module : shaderModules)
     {
@@ -13,9 +13,22 @@ VulkanLayout::VulkanLayout(VulkanDevice& device)
 
 VulkanLayout::~VulkanLayout()
 {
-    if (descriptorLayout)
+    if (descriptorSetLayout)
     {
-        delete descriptorLayout;
+        delete descriptorSetLayout;
+    }
+
+    if (commonDescriptorLayout)
+    {
+        delete commonDescriptorLayout;
+    }
+
+    for (VkShaderModule shader : shaderModules)
+    {
+        if (shader != VK_NULL_HANDLE)
+        {
+            vkDestroyShaderModule(device.getDevice(), shader, nullptr);
+        }
     }
 
     vkDestroyPipelineLayout(device.getDevice(), pipelineLayout, nullptr);
@@ -167,8 +180,13 @@ std::vector<VkPipelineShaderStageCreateInfo> VulkanLayout::getShaderStageCreateI
 VulkanPipeline VulkanLayout::createPipeline()
 {
     // build descriptor set layout
-    VkDescriptorSetLayout descriptorSetLayout = discriptorLayoutBuilder.build(device.getDevice(), VK_SHADER_STAGE_ALL)->getDescriptorSetLayout();
-    descriptorSetLayouts.push_back(descriptorSetLayout);
+    std::vector<VkDescriptorSetLayout> descriptorSetLayouts;
+    descriptorSetLayout = discriptorLayoutBuilder.build(device.getDevice(), VK_SHADER_STAGE_ALL);
+    descriptorSetLayouts.push_back(descriptorSetLayout->getDescriptorSetLayout());
+    if (commonDescriptorLayout && commonDescriptorLayout->getDescriptorSetLayout() != VK_NULL_HANDLE)
+    {
+        descriptorSetLayouts.push_back(commonDescriptorLayout->getDescriptorSetLayout());
+    }
 
     // craete pipeline layout
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = VulkanHeaplerLibrary::pipelineLayoutCreateInfo();
