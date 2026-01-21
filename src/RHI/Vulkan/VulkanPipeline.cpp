@@ -252,6 +252,43 @@ VulkanPipeline VulkanLayout::createPipeline()
 
     return VulkanPipeline(device, *this, pipeline);
 }
+
+VulkanComputePipeline VulkanLayout::createComputePipeline()
+{
+    // build descriptor set layout
+    std::vector<VkDescriptorSetLayout> descriptorSetLayouts;
+    descriptorSetLayout = discriptorLayoutBuilder.build(device.getDevice(), VK_SHADER_STAGE_ALL);
+    descriptorSetLayouts.push_back(descriptorSetLayout->getDescriptorSetLayout());
+    if (commonDescriptorLayout && commonDescriptorLayout->getDescriptorSetLayout() != VK_NULL_HANDLE)
+    {
+        descriptorSetLayouts.push_back(commonDescriptorLayout->getDescriptorSetLayout());
+    }
+
+    // craete pipeline layout
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo = VulkanHeaplerLibrary::pipelineLayoutCreateInfo();
+    pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
+    pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
+    pipelineLayoutInfo.setLayoutCount = sizeof(descriptorSetLayouts);
+
+    VK_CHECK(vkCreatePipelineLayout(device.getDevice(), &pipelineLayoutInfo, nullptr, &pipelineLayout));
+
+    // build compute pipeline
+    VkComputePipelineCreateInfo pipelineInfo{};
+    pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+    pipelineInfo.layout = pipelineLayout;
+
+    std::vector<VkPipelineShaderStageCreateInfo> shaderStages = getShaderStageCreateInfo();
+    assert(shaderStages.size() == 1 && "compute pipeline should only have one compute shader stage");
+    pipelineInfo.stage = shaderStages[0];
+
+    VkPipeline pipeline;
+    if (vkCreateComputePipelines(device.getDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline) != VK_SUCCESS) {
+        LOG_ERROR("failed to create compute pipeline");
+        assert(0);
+    }
+
+    return VulkanComputePipeline(device, *this, pipeline);
+}
 // ----------------- VulkanLayout ------------------
 
 // ----------------- VulkanPipelin ------------------
@@ -259,4 +296,20 @@ VulkanPipeline::VulkanPipeline(VulkanDevice& device, VulkanLayout layout, VkPipe
     : device(device), layout(layout), pipeline(pipeline)
 {
 }
+
+VulkanPipeline::~VulkanPipeline()
+{
+    vkDestroyPipeline(device.getDevice(), pipeline, nullptr);
+}
 // ----------------- VulkanPipelin ------------------
+
+// ----------------- VulkanComputePipeline ------------------
+VulkanComputePipeline::VulkanComputePipeline(VulkanDevice& device, VulkanLayout layout, VkPipeline pipeline)
+    : device(device), layout(layout), pipeline(pipeline)
+{}
+
+VulkanComputePipeline::~VulkanComputePipeline()
+{
+    vkDestroyPipeline(device.getDevice(), pipeline, nullptr);
+}
+// ----------------- VulkanComputePipeline ------------------

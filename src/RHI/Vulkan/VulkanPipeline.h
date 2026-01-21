@@ -4,6 +4,7 @@
 #include <Vulkan/VulkanDescriptorSet.h>
 
 class VulkanPipeline;
+class VulkanComputePipeline;
 
 enum VulkanShaderStage
 {
@@ -44,6 +45,7 @@ public:
     void setBlendAlpha();
 
     VulkanPipeline createPipeline();
+    VulkanComputePipeline createComputePipeline();
 private:
     std::vector<VkPipelineShaderStageCreateInfo> getShaderStageCreateInfo();
 private:
@@ -83,10 +85,10 @@ private:
 class VulkanComputePipeline
 {
 public:
-    VulkanComputePipeline(VulkanDevice& device, VkShaderModule computeShader);
+    VulkanComputePipeline(VulkanDevice& device, VulkanLayout layout, VkPipeline pipeline);
     ~VulkanComputePipeline();
 private:
     VulkanDevice& device;
-    VkPipelineLayout pipelineLayout;
+    VulkanLayout layout;
     VkPipeline pipeline;
 };
