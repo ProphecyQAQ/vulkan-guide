@@ -94,10 +94,17 @@ VulkanDescriptorPoolSet::VulkanDescriptorPoolSet(VulkanDevice& device)
 
 VulkanDescriptorPoolSet::~VulkanDescriptorPoolSet()
 {
+    clear();
+}
+
+void VulkanDescriptorPoolSet::clear()
+{
     for (VulkanDescriptorPool* pool : descriptorPools)
     {
         delete pool;
     }
+    descriptorPools.clear();
+    currentPoolIndex = -1;
 }
 
 VulkanDescriptorPool* VulkanDescriptorPoolSet::createNewPool()

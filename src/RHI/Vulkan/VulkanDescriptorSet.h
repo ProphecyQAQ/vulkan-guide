@@ -53,6 +53,7 @@ public:
     ~VulkanDescriptorPoolSet();
 
     VkDescriptorSet allocateDescriptorSet(VulkanDescriptorSetLayout* setLayout);
+    void clear();
 private:
     VulkanDescriptorPool* createNewPool();
     VulkanDescriptorPool* getFreePool();
