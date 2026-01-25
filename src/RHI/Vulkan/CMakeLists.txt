@@ -6,6 +6,7 @@ add_library(VulkanRHI
     VulkanDescriptorSet.cpp
     VulkanPipeline.cpp
     VulkanHelper.cpp
+    VulkanImage.cpp
 )
 
 target_include_directories(VulkanRHI

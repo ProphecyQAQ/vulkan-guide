@@ -253,7 +253,7 @@ VulkanPipeline VulkanLayout::createPipeline()
     return VulkanPipeline(device, *this, pipeline);
 }
 
-VulkanComputePipeline VulkanLayout::createComputePipeline()
+VulkanComputePipeline* VulkanLayout::createComputePipeline()
 {
     // build descriptor set layout
     std::vector<VkDescriptorSetLayout> descriptorSetLayouts;
@@ -268,7 +268,7 @@ VulkanComputePipeline VulkanLayout::createComputePipeline()
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = VulkanHeaplerLibrary::pipelineLayoutCreateInfo();
     pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
     pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
-    pipelineLayoutInfo.setLayoutCount = sizeof(descriptorSetLayouts);
+    pipelineLayoutInfo.setLayoutCount = descriptorSetLayouts.size();
 
     VK_CHECK(vkCreatePipelineLayout(device.getDevice(), &pipelineLayoutInfo, nullptr, &pipelineLayout));
 
@@ -287,7 +287,7 @@ VulkanComputePipeline VulkanLayout::createComputePipeline()
         assert(0);
     }
 
-    return VulkanComputePipeline(device, *this, pipeline);
+    return new VulkanComputePipeline(device, *this, pipeline);
 }
 // ----------------- VulkanLayout ------------------
 

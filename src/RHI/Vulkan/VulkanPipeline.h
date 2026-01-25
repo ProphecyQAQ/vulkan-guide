@@ -45,7 +45,7 @@ public:
     void setBlendAlpha();
 
     VulkanPipeline createPipeline();
-    VulkanComputePipeline createComputePipeline();
+    VulkanComputePipeline* createComputePipeline();
 private:
     std::vector<VkPipelineShaderStageCreateInfo> getShaderStageCreateInfo();
 private:

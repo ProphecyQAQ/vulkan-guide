@@ -10,5 +10,9 @@ public:
 
     virtual void init(Window* window) = 0;
 
+	virtual void beginFrame() = 0;
+	virtual void drawFrame() = 0;
+	virtual void endFrame() = 0;
+
     static std::unique_ptr<GraphicsContext> create();
 };

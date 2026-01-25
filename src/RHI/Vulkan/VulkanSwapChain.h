@@ -12,6 +12,9 @@ public:
     ~VulkanSwapChain();
 
     SwapChainSupportDetails getSwapChainSupportDetails();
+
+    VkSwapchainKHR getSwapChain() const { return swapchain; }
+    VkImage getImage(uint32_t index) const { return swapchainImages[index]; }
 private:
     void createSwapChain(VkInstance instance, uint32_t width, uint32_t height);
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);

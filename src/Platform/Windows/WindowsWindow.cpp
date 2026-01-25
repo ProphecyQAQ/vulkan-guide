@@ -58,16 +58,11 @@ void WindowsWindow::onUpdate()
 {
     SDL_Event event;
 
-    while (!bQuit)
+    SDL_PollEvent(&event);
+    if (event.type == SDL_QUIT)
     {
-        while (SDL_PollEvent(&event) != 0)
-        {
-            if (event.type == SDL_QUIT)
-            {
-                bQuit = true;
-            }
-            
-        }
-        SDL_Delay(16);
+        bQuit = true;
     }
+    
+    SDL_Delay(16);
 }
