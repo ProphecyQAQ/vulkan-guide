@@ -257,7 +257,7 @@ VulkanComputePipeline* VulkanLayout::createComputePipeline()
 {
     // build descriptor set layout
     std::vector<VkDescriptorSetLayout> descriptorSetLayouts;
-    descriptorSetLayout = discriptorLayoutBuilder.build(device.getDevice(), VK_SHADER_STAGE_ALL);
+    descriptorSetLayout = discriptorLayoutBuilder.build(device.getDevice(), VK_SHADER_STAGE_COMPUTE_BIT);
     descriptorSetLayouts.push_back(descriptorSetLayout->getDescriptorSetLayout());
     if (commonDescriptorLayout && commonDescriptorLayout->getDescriptorSetLayout() != VK_NULL_HANDLE)
     {
