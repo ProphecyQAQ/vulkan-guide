@@ -47,6 +47,60 @@ VulkanDescriptorSet::VulkanDescriptorSet(VulkanDevice& device, VulkanDescriptorS
 {
     
 }
+
+void VulkanDescriptorSet::Writer::writeImage(int binding, VkImageView imageView, VkSampler sampler, VkImageLayout layout, VkDescriptorType type)
+{
+    VkDescriptorImageInfo &imageInfo = imageInfos.emplace_back(VkDescriptorImageInfo{
+        .sampler = sampler,
+        .imageView = imageView,
+        .imageLayout = layout,
+    });
+
+    VkWriteDescriptorSet descriptorWrite{};
+    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrite.dstBinding = binding;
+    descriptorWrite.descriptorCount = 1;
+    descriptorWrite.descriptorType = type;
+    descriptorWrite.pImageInfo = &imageInfo;
+
+    descriptorWrites.push_back(descriptorWrite);
+}
+
+void VulkanDescriptorSet::Writer::writeBuffer(int binding, VkBuffer buffer, size_t size, size_t offset, VkDescriptorType type)
+{
+    VkDescriptorBufferInfo &bufferInfo = bufferInfos.emplace_back(VkDescriptorBufferInfo{
+        .buffer = buffer,
+        .offset = offset,
+        .range = size
+    });
+
+    VkWriteDescriptorSet descriptorWrite{};
+    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrite.dstBinding = binding;
+    descriptorWrite.descriptorCount = 1;
+    descriptorWrite.descriptorType = type;
+    descriptorWrite.pBufferInfo = &bufferInfo;
+
+    descriptorWrites.push_back(descriptorWrite);
+}
+
+void VulkanDescriptorSet::Writer::clear()
+{
+    imageInfos.clear();
+    bufferInfos.clear();
+    descriptorWrites.clear();
+}
+
+void VulkanDescriptorSet::Writer::update(VulkanDevice& device, VkDescriptorSet descriptorSet)
+{
+    for (VkWriteDescriptorSet& write : descriptorWrites)
+    {
+        write.dstSet = descriptorSet;
+    }
+
+    vkUpdateDescriptorSets(device.getDevice(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+}
+
 // -------------VulkanDescriptorSet----------------
 
 // -------------VulkanDescriptorPool----------------

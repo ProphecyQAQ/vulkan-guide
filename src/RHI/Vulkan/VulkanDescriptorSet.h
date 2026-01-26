@@ -25,6 +25,19 @@ private:
 class VulkanDescriptorSet
 {
 public:
+    struct Writer
+    {
+        std::vector<VkDescriptorImageInfo> imageInfos;
+        std::vector<VkDescriptorBufferInfo> bufferInfos;
+        std::vector<VkWriteDescriptorSet> descriptorWrites;
+
+        void writeImage(int binding, VkImageView imageView, VkSampler sampler, VkImageLayout layout, VkDescriptorType type);
+        void writeBuffer(int binding, VkBuffer buffer, size_t size, size_t offset, VkDescriptorType type);
+
+        void clear();
+        void update(VulkanDevice& device, VkDescriptorSet descriptorSet);
+    };
+
     VulkanDescriptorSet(VulkanDevice& device, VulkanDescriptorSetLayout& setLayout);
     ~VulkanDescriptorSet();
 private:
