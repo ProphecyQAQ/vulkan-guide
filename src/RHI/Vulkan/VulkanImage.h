@@ -9,6 +9,7 @@ public:
     ~VulkanImage();
 
     VkImage getImage() { return image; }
+    VkImageView getImageView() const { return imageView; }
 private:
     VkImageCreateInfo imageCreateInfo();
     VkImageViewCreateInfo imageviewCreateInfo(VkImageAspectFlags aspectFlags);

@@ -77,6 +77,7 @@ private:
 	void drawComputePipeline(VkCommandBuffer cmd);
 	VulkanLayout* computePipelineLayout;
 	VulkanComputePipeline* computePipeline;
+	VkDescriptorSet computePipelineDescriptorSet;
 	struct ComputePipelinePushConstantData 
 	{
 		glm::vec4 data1;

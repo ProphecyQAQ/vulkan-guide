@@ -46,6 +46,9 @@ public:
 
     VulkanPipeline createPipeline();
     VulkanComputePipeline* createComputePipeline();
+public:
+    VulkanDescriptorSetLayout* getDescriptorSetLayout() const { return descriptorSetLayout; }
+    VkPipelineLayout getPipelineLayout() const { return pipelineLayout; }
 private:
     std::vector<VkPipelineShaderStageCreateInfo> getShaderStageCreateInfo();
 private:
@@ -85,10 +88,12 @@ private:
 class VulkanComputePipeline
 {
 public:
-    VulkanComputePipeline(VulkanDevice& device, VulkanLayout layout, VkPipeline pipeline);
+    VulkanComputePipeline(VulkanDevice& device, VulkanLayout& layout, VkPipeline pipeline);
     ~VulkanComputePipeline();
+
+    VkPipeline getPipeline() const { return pipeline; }
 private:
     VulkanDevice& device;
-    VulkanLayout layout;
+    VulkanLayout& layout;
     VkPipeline pipeline;
 };

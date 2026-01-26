@@ -304,7 +304,7 @@ VulkanPipeline::~VulkanPipeline()
 // ----------------- VulkanPipelin ------------------
 
 // ----------------- VulkanComputePipeline ------------------
-VulkanComputePipeline::VulkanComputePipeline(VulkanDevice& device, VulkanLayout layout, VkPipeline pipeline)
+VulkanComputePipeline::VulkanComputePipeline(VulkanDevice& device, VulkanLayout& layout, VkPipeline pipeline)
     : device(device), layout(layout), pipeline(pipeline)
 {}
 
