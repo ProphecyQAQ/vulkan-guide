@@ -37,7 +37,7 @@ FrameContext::~FrameContext()
 constexpr uint32_t WIDTH = 800;
 constexpr uint32_t HEIGHT = 600;
 
-VulkanContext* ctx = nullptr;
+static VulkanContext* ctx = nullptr;
 VulkanContext* VulkanContext::get()
 {
     return ctx;

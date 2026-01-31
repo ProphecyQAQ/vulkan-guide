@@ -1,5 +1,6 @@
 #include <Core/Window.h>
 #include <Core/Log.h>
+#include <Scene/Scene.h>
 #include <RHI/GraphicsContext.h>
 #include <memory>
 
@@ -13,6 +14,9 @@ int main()
 
     std::unique_ptr<GraphicsContext> graphicsContext = GraphicsContext::create();
     graphicsContext->init(window.get());
+
+    Scene scene;
+    Object obj = Object::loadGLTF("D:\\dev\\vulkan-guide1\\assets\\basicmesh.glb");
 
     while (true)
     {
