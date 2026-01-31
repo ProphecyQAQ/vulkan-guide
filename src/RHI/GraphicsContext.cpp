@@ -1,7 +1,15 @@
 #include <RHI/GraphicsContext.h>
 #include <Vulkan/VulkanContext.h>
 
-std::unique_ptr<GraphicsContext> GraphicsContext::create()
+RenderSystem::RenderSystem(Window* window)
 {
-    return std::make_unique<VulkanContext>();
+    graphicsContext = std::make_unique<VulkanContext>();
+    graphicsContext->init(window);
+}
+
+void RenderSystem::onUpdate()
+{
+    graphicsContext->beginFrame();
+    graphicsContext->drawFrame();
+    graphicsContext->endFrame();
 }

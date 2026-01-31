@@ -13,6 +13,15 @@ public:
 	virtual void beginFrame() = 0;
 	virtual void drawFrame() = 0;
 	virtual void endFrame() = 0;
+};
 
-    static std::unique_ptr<GraphicsContext> create();
+class RenderSystem
+{
+public:
+    RenderSystem(Window* window);
+    virtual ~RenderSystem() = default;
+
+    void onUpdate();
+private:
+    std::unique_ptr<GraphicsContext> graphicsContext;
 };

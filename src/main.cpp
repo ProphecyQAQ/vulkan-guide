@@ -12,8 +12,7 @@ int main()
     WindowProps props("Render Window", 800, 600);
     std::unique_ptr<Window> window = Window::create(props);
 
-    std::unique_ptr<GraphicsContext> graphicsContext = GraphicsContext::create();
-    graphicsContext->init(window.get());
+    RenderSystem renderSystem(window.get());
 
     Scene scene;
     Object obj = Object::loadGLTF("D:\\dev\\vulkan-guide1\\assets\\basicmesh.glb");
@@ -21,9 +20,7 @@ int main()
     while (true)
     {
         window->onUpdate();
-        graphicsContext->beginFrame();
-        graphicsContext->drawFrame();
-        graphicsContext->endFrame();
+        renderSystem.onUpdate();
     }
 
     return 0;

@@ -2,7 +2,7 @@
 #include <Vulkan/VulkanContext.h>
 
 VulkanImage::VulkanImage(VkExtent3D size, VkFormat format, VkImageUsageFlags usage, bool mipmapped)
-    : size(size), format(format), usageFlags(usage), mipmapped(mipmapped)
+    : format(format), size(size), usageFlags(usage), mipmapped(mipmapped)
 {
     // create image
     VkImageCreateInfo imageInfo = imageCreateInfo();
