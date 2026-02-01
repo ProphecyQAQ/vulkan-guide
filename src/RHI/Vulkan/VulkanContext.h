@@ -37,6 +37,7 @@ public:
 	virtual void beginFrame() override;
 	virtual void drawFrame() override;
 	virtual void endFrame() override;
+	virtual void submit(RenderData& renderData) override;
 	QueueFamilyIndices getQueueFamilyIndices() const { return queueFamilyIndices; }
 	VmaAllocator getAllocator() const { return allocator; }
 	VkDevice getVkDevice() const { return vulkanDevice->getDevice(); }
@@ -44,6 +45,7 @@ private:
 	void initImmediateCtx();
 	void initFrameContext();
 
+	void immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& func);
 	FrameContext* getCurrentFrameContext() { return frameContexts[frameCount % FRAME_OVERLAP]; }
 private:
 	VkInstance instance;
@@ -62,6 +64,7 @@ private:
 
 	// draw ctx
 	VulkanCommandBufferPool *immediateCmdPool;
+	VulkanCommandBuffer* immediateCmdBuffer;
 	VkFence immediateFence;
 
 	std::vector<FrameContext*> frameContexts;

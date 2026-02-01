@@ -19,7 +19,7 @@ public:
 
     VulkanCommandBuffer* create();
     VulkanCommandBufferType getType() const { return type; }
-    VkCommandPool getHandle() const { return cmdPool; }
+    VkCommandPool getHandle() { return cmdPool; }
 private:
     std::vector<VulkanCommandBuffer*> cmdBuffers;
     VkCommandPool cmdPool;

@@ -16,10 +16,11 @@ int main()
 
     Scene scene;
     Object obj = Object::loadGLTF("D:\\dev\\vulkan-guide1\\assets\\basicmesh.glb");
-
+    scene.addObject(&obj);
     while (true)
     {
         window->onUpdate();
+        scene.OnUpdate();
         renderSystem.onUpdate();
     }
 

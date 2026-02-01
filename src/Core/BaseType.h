@@ -1,6 +1,7 @@
 #pragma once
 
 #include <glm/glm.hpp>
+#include <vector>
 
 struct Vertex
 {
@@ -12,4 +13,11 @@ struct Vertex
     glm::vec3 normal;
     float uv_v;
     glm::vec3 color;
+};
+
+struct RenderData
+{
+    glm::mat4 transform;
+    std::vector<Vertex>* vertices;
+    std::vector<uint32_t>* indices;
 };

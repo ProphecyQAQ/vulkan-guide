@@ -2,7 +2,7 @@
 #include <Core/Log.h>
 #include <Vulkan/VulkanContext.h>
 #include <Vulkan/VulkanHelper.h>
-
+#include <Vulkan/VulkanBuffer.h>
 #define VMA_IMPLEMENTATION
 #include <vk_mem_alloc.h>
 
@@ -143,7 +143,7 @@ void VulkanContext::initImmediateCtx()
 {
     // create immediate command pool and buffer
     immediateCmdPool = new VulkanCommandBufferPool(*vulkanDevice, VulkanCommandBufferType::VK_CMD_BUFFER_TYPE_PRIMARY);
-    immediateCmdPool->create();
+    immediateCmdBuffer = immediateCmdPool->create();
 
     VkFenceCreateInfo fenceInfo = VulkanHeaplerLibrary::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
     VK_CHECK(vkCreateFence(vulkanDevice->getDevice(), &fenceInfo, nullptr, &immediateFence));
@@ -287,3 +287,59 @@ void VulkanContext::drawFrame()
 
 void VulkanContext::endFrame()
 {};
+
+void VulkanContext::immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& func)
+{
+    // wait last frame over
+    VK_CHECK(vkWaitForFences(vulkanDevice->getDevice(), 1, &immediateFence, true, UINT64_MAX));
+    VK_CHECK(vkResetFences(vulkanDevice->getDevice(), 1, &immediateFence));
+
+    VkCommandBuffer cmd = immediateCmdBuffer->getHandle();
+    VK_CHECK(vkResetCommandBuffer(cmd, 0));
+
+    VkCommandBufferBeginInfo cmdBeginInfo = VulkanHeaplerLibrary::commandBufferBeginInfo(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+    VK_CHECK(vkBeginCommandBuffer(cmd, &cmdBeginInfo));
+
+    func(cmd);
+
+    VK_CHECK(vkEndCommandBuffer(cmd));
+
+    VkCommandBufferSubmitInfo cmdSubmitInfo = VulkanHeaplerLibrary::commandBufferSubmitInfo(cmd);
+
+    VkSubmitInfo2 submitInfo = VulkanHeaplerLibrary::submitInfo(&cmdSubmitInfo, nullptr, nullptr);
+
+    VK_CHECK(vkQueueSubmit2(vulkanDevice->getGraphicsQueue(), 1, &submitInfo, immediateFence));
+    VK_CHECK(vkWaitForFences(vulkanDevice->getDevice(), 1, &immediateFence, true, UINT64_MAX));
+}
+
+void VulkanContext::submit(RenderData& renderData)
+{
+    size_t vertexBufferSize = renderData.vertices->size() * sizeof(Vertex);
+    size_t indexBufferSize = renderData.indices->size() * sizeof(uint32_t);
+
+    VulkanBuffer vertexBuffer(vertexBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+    VulkanBuffer indexBuffer(indexBufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+    
+    VulkanBuffer stagingBuffer(vertexBufferSize + indexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
+    // Copy vertex and index data to staging buffer
+    void* data = stagingBuffer.getMappedData();
+    memcpy(data, renderData.vertices->data(), vertexBufferSize);
+    memcpy(static_cast<uint8_t*>(data) + vertexBufferSize, renderData.indices->data(), indexBufferSize);
+
+    immediateSubmit([&](VkCommandBuffer cmd){
+        VkBufferCopy vertexCopy{};
+        vertexCopy.srcOffset = 0;
+        vertexCopy.dstOffset = 0;
+        vertexCopy.size = vertexBufferSize;
+
+        vkCmdCopyBuffer(cmd, stagingBuffer.getBuffer(), vertexBuffer.getBuffer(), 1, &vertexCopy);
+
+        VkBufferCopy indexCopy{};
+        indexCopy.srcOffset = vertexBufferSize;
+        indexCopy.dstOffset = 0;
+        indexCopy.size = indexBufferSize;
+
+        vkCmdCopyBuffer(cmd, stagingBuffer.getBuffer(), indexBuffer.getBuffer(), 1, &indexCopy);
+    }
+    );
+}

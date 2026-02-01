@@ -14,6 +14,9 @@ VulkanBuffer::VulkanBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemory
     allocCreateInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
     VK_CHECK(vmaCreateBuffer(VulkanContext::get()->getAllocator(), &bufferInfo, &allocCreateInfo, &buffer, &allocation, &allocationInfo));
+
+    VkBufferDeviceAddressInfo vertexAddressInfo = {.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO, .buffer = buffer};
+    vertexBufferAddress = vkGetBufferDeviceAddress(VulkanContext::get()->getVkDevice(), &vertexAddressInfo);
 }
 
 VulkanBuffer::~VulkanBuffer()

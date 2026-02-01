@@ -8,5 +8,5 @@ target_include_directories(scene
 )
 
 target_link_libraries(scene
-    PUBLIC core glm fastgltf::fastgltf
+    PUBLIC core glm fastgltf::fastgltf rhi
 )
