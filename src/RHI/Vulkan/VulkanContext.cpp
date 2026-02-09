@@ -45,6 +45,13 @@ VulkanContext* VulkanContext::get()
 
 VulkanContext::~VulkanContext()
 {
+    // delete images that use VMA before destroying allocator
+    delete renderImage;
+    delete depthImage;
+
+    // clear render datas that contain VMA buffers
+    frameRenderDatas.clear();
+
     vmaDestroyAllocator(allocator);
 
     delete swapChain;
@@ -58,9 +65,6 @@ VulkanContext::~VulkanContext()
     {
         delete ctx;
     }
-
-    // delete image
-    delete renderImage;
 
     // delete global descriptor pool set
     delete globalDescriptorPoolSet;
