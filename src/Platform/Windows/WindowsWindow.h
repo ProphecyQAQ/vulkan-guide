@@ -31,6 +31,8 @@ public:
     virtual std::vector<const char*> getVulkanExtensions() const override;
 
     virtual void onUpdate() override;
+
+    virtual bool isExit() override { return bQuit; }
 private:
     SDL_Window* window;
     WindowProps props;

@@ -28,6 +28,7 @@ public:
     virtual void* getNativeWindow() const = 0; 
 
     virtual void onUpdate() = 0;
+    virtual bool isExit() = 0;
 
     virtual std::vector<const char*> getVulkanExtensions() const = 0;
 
