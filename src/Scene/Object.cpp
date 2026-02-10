@@ -103,7 +103,7 @@ Object Object::loadGLTF(std::filesystem::path path)
             if (color != primitive.attributes.end())
             {
                 fastgltf::Accessor& colorAccessor = gltfAsset.accessors[color->second];
-                fastgltf::iterateAccessorWithIndex<glm::vec3>(gltfAsset, colorAccessor, [&](glm::vec3 color, uint32_t index){
+                fastgltf::iterateAccessorWithIndex<glm::vec4>(gltfAsset, colorAccessor, [&](glm::vec4 color, uint32_t index){
                     vertices.back().color = color;
                 });
             }

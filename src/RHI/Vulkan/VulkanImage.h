@@ -10,6 +10,7 @@ public:
 
     VkImage getImage() { return image; }
     VkImageView getImageView() const { return imageView; }
+    VkFormat getFormat() const { return format; }
 private:
     VkImageCreateInfo imageCreateInfo();
     VkImageViewCreateInfo imageviewCreateInfo(VkImageAspectFlags aspectFlags);

@@ -9,6 +9,16 @@
 #include <Vulkan/VulkanDescriptorSet.h>
 #include <Vulkan/VulkanPipeline.h>
 #include <Vulkan/VulkanImage.h>
+#include <Vulkan/VulkanBuffer.h>
+
+struct RenderObject
+{
+	VulkanBuffer vertexBuffer;
+	VulkanBuffer indexBuffer;
+	uint32_t indexCount;
+	uint32_t firstIndex;
+	glm::mat4 transform;
+};
 
 struct FrameContext
 {
@@ -72,10 +82,14 @@ private:
 	VulkanDescriptorPoolSet* globalDescriptorPoolSet;
 
 	VulkanImage *renderImage;
+	VulkanImage *depthImage;
 
+	std::vector<RenderObject> frameRenderDatas;
 	uint32_t frameCount = 0;
 private:
 	// blow is for test
+
+	// here is compute pipeline
 	void initComputePipeline();
 	void drawComputePipeline(VkCommandBuffer cmd);
 	VulkanLayout* computePipelineLayout;
@@ -88,4 +102,15 @@ private:
 		glm::vec4 data3;
 		glm::vec4 data4;
 	} ComputePipelinePushConstantData;
+
+	// here is unlit pipeline
+	VulkanLayout* unlitPipelineLayout;
+	VulkanPipeline* unlitPipeline;
+	struct UnlitPipelinePushConstantData 
+	{
+		glm::mat4 render_matrix;
+		VkDeviceAddress vertexBufferAddress;
+	} unlitPipelinePushConstantData;
+	void initUnlitPipeline();
+	void drawUnlitPipeline(VkCommandBuffer cmd);
 };

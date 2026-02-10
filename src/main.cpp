@@ -15,8 +15,8 @@ int main()
     RenderSystem renderSystem(window.get());
 
     Scene scene;
-    Object obj = Object::loadGLTF("D:\\dev\\vulkan-guide1\\assets\\basicmesh.glb");
-    scene.addObject(&obj);
+    // Object obj = Object::loadGLTF("D:\\dev\\vulkan-guide1\\assets\\basicmesh.glb");
+    // scene.addObject(&obj);
     while (!window->isExit())
     {
         window->onUpdate();

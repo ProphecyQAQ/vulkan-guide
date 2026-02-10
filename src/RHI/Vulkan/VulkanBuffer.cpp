@@ -3,6 +3,11 @@
 
 VulkanBuffer::VulkanBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage)
 {
+    init(allocSize, usage, memoryUsage);
+}
+
+void VulkanBuffer::init(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage)
+{
     VkBufferCreateInfo bufferInfo{};
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     bufferInfo.size = allocSize;
@@ -21,5 +26,8 @@ VulkanBuffer::VulkanBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemory
 
 VulkanBuffer::~VulkanBuffer()
 {
-    vmaDestroyBuffer(VulkanContext::get()->getAllocator(), buffer, allocation);
+    if (buffer != VK_NULL_HANDLE)
+    {
+        vmaDestroyBuffer(VulkanContext::get()->getAllocator(), buffer, allocation);
+    }
 }

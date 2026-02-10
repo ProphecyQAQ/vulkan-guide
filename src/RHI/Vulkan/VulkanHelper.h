@@ -20,6 +20,11 @@ public:
 
     static bool loadShaderModule(const char* filePath, VkDevice device, VkShaderModule* outShaderModule);
 
+    // attachment info
+    static VkRenderingAttachmentInfo attachmentInfo(VkImageView view, VkClearValue* clear, VkImageLayout layout /*=VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL*/);
+    static VkRenderingAttachmentInfo depthAttachmentInfo(VkImageView view, VkImageLayout layout /*= VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL*/);
+    static VkRenderingInfo renderingInfo(VkExtent2D renderExtent, VkRenderingAttachmentInfo* colorAttachment, VkRenderingAttachmentInfo* depthAttachment);
+
     // cmd
     static VkCommandBufferBeginInfo commandBufferBeginInfo(VkCommandBufferUsageFlags flags /*= 0*/);
     static VkCommandBufferSubmitInfo commandBufferSubmitInfo(VkCommandBuffer cmd);

@@ -15,5 +15,6 @@ public:
 
     void OnUpdate();    
 private:
+    std::unique_ptr<Object> triangleObj;
     std::unordered_map<Object*, glm::mat4> objects;
 };

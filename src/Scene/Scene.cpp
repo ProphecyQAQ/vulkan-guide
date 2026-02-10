@@ -3,6 +3,29 @@
 
 Scene::Scene()
 {
+    // Create a simple triangle
+    triangleObj = std::make_unique<Object>();
+    auto& vertices = triangleObj->getVertices();
+    auto& indices = triangleObj->getIndices();
+
+    // Define triangle vertices
+    vertices.emplace_back();
+    vertices.back().position = glm::vec3(-0.5f, -0.5f, 0.0f);
+    vertices.back().color = glm::vec4(1.0f, 0.0f, 0.0f, 1.f); // Red
+
+    vertices.emplace_back();
+    vertices.back().position = glm::vec3(0.5f, -0.5f, 0.0f);
+    vertices.back().color = glm::vec4(0.0f, 1.0f, 0.0f, 1.f); // Green
+
+    vertices.emplace_back();
+    vertices.back().position = glm::vec3(0.0f, 0.5f, 0.0f);
+    vertices.back().color = glm::vec4(0.0f, 0.0f, 1.0f, 1.f); // Blue
+
+    // Indices
+    indices = {0, 1, 2};
+
+    // Add to scene
+    addObject(triangleObj.get(), glm::mat4(1.0f));
 }
 
 Scene::~Scene()

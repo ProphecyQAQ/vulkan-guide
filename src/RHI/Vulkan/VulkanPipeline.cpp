@@ -1,7 +1,6 @@
 #include <Vulkan/VulkanPipeline.h>
 #include <Vulkan/VulkanHelper.h>
 
-// ----------------- VulkanLayout ------------------
 VulkanLayout::VulkanLayout(VulkanDevice& device)
     : device(device), descriptorSetLayout(nullptr), commonDescriptorLayout(nullptr)
 {
@@ -9,6 +8,20 @@ VulkanLayout::VulkanLayout(VulkanDevice& device)
     {
         module = VK_NULL_HANDLE;
     }
+
+    inputAssembly = { .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
+
+    rasterizationState = { .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO };
+
+    colorBlendAttachment = {};
+    
+    multisampleState = { .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
+
+    pipelineLayout = {};
+
+    depthStencilState = { .sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO };
+
+    renderInfo = { .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO };
 }
 
 VulkanLayout::~VulkanLayout()
@@ -80,8 +93,9 @@ void VulkanLayout::setMultiSampleState(uint32_t sampleNum)
 
 void VulkanLayout::setColorAttachmentFormat(VkFormat format)
 {
+    colorAttachmentFormat = format;
     renderInfo.colorAttachmentCount = 1;
-    renderInfo.pColorAttachmentFormats = &format;
+    renderInfo.pColorAttachmentFormats = &colorAttachmentFormat;
 }
 
 void VulkanLayout::disableBlend()
@@ -177,7 +191,7 @@ std::vector<VkPipelineShaderStageCreateInfo> VulkanLayout::getShaderStageCreateI
     return shaderStages;
 }
 
-VulkanPipeline VulkanLayout::createPipeline()
+VulkanPipeline* VulkanLayout::createPipeline()
 {
     // build descriptor set layout
     std::vector<VkDescriptorSetLayout> descriptorSetLayouts;
@@ -192,7 +206,7 @@ VulkanPipeline VulkanLayout::createPipeline()
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = VulkanHeaplerLibrary::pipelineLayoutCreateInfo();
     pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
     pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
-    pipelineLayoutInfo.setLayoutCount = sizeof(descriptorSetLayouts);
+    pipelineLayoutInfo.setLayoutCount = descriptorSetLayouts.size();
 
     VK_CHECK(vkCreatePipelineLayout(device.getDevice(), &pipelineLayoutInfo, nullptr, &pipelineLayout));
 
@@ -250,7 +264,7 @@ VulkanPipeline VulkanLayout::createPipeline()
         assert(0);
     }
 
-    return VulkanPipeline(device, *this, pipeline);
+    return new VulkanPipeline(device, *this, pipeline);
 }
 
 VulkanComputePipeline* VulkanLayout::createComputePipeline()

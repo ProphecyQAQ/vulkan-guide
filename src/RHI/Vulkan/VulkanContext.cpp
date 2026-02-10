@@ -2,7 +2,6 @@
 #include <Core/Log.h>
 #include <Vulkan/VulkanContext.h>
 #include <Vulkan/VulkanHelper.h>
-#include <Vulkan/VulkanBuffer.h>
 #define VMA_IMPLEMENTATION
 #include <vk_mem_alloc.h>
 
@@ -81,7 +80,8 @@ void VulkanContext::init(Window* window)
     ctx = this;
 
     deviceExtensions = {
-        VK_KHR_SWAPCHAIN_EXTENSION_NAME
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+        VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME
     };
 
     // create vkinstance create info
@@ -137,9 +137,19 @@ void VulkanContext::init(Window* window)
         false
     );
 
+    // create depth image
+    depthImage = new VulkanImage(
+        VkExtent3D{ WIDTH, HEIGHT, 1},
+        VK_FORMAT_D32_SFLOAT,
+        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+        false
+    );
+
     // blow is for test
     {
         initComputePipeline();
+
+        initUnlitPipeline();
     }
 }
 
@@ -205,6 +215,80 @@ void VulkanContext::drawComputePipeline(VkCommandBuffer cmd)
 	vkCmdDispatch(cmd, std::ceil(WIDTH / 16.0), std::ceil(HEIGHT / 16.0), 1);
 }
 
+void VulkanContext::initUnlitPipeline()
+{
+    unlitPipelineLayout = new VulkanLayout(*vulkanDevice);
+
+    unlitPipelineLayout->setPushConstantType(sizeof(UnlitPipelinePushConstantData), VK_SHADER_STAGE_VERTEX_BIT);
+    unlitPipelineLayout->setInputAssembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+    unlitPipelineLayout->setPolygonMode(VK_POLYGON_MODE_FILL);
+    unlitPipelineLayout->setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE);
+    unlitPipelineLayout->setMultiSampleState(1);
+    unlitPipelineLayout->disableBlend();
+    unlitPipelineLayout->enableDepthTest(true, VK_COMPARE_OP_GREATER_OR_EQUAL);
+
+    unlitPipelineLayout->setColorAttachmentFormat(renderImage->getFormat());
+    unlitPipelineLayout->setDepthFormat(depthImage->getFormat());
+
+    VkShaderModule vertShader;
+    if (!VulkanHeaplerLibrary::loadShaderModule("../../shaders/colored_triangle_mesh.vert.spv", vulkanDevice->getDevice(), &vertShader)) {
+        LOG_ERROR("Error when building the unlit vertex shader \n");
+    }
+    unlitPipelineLayout->setShaderModule(vertShader, VulkanShaderStage::VK_SHADER_VERTEX);
+    VkShaderModule fragShader;
+    if (!VulkanHeaplerLibrary::loadShaderModule("../../shaders/colored_triangle.frag.spv", vulkanDevice->getDevice(), &fragShader)) {
+        LOG_ERROR("Error when building the unlit fragment shader \n");
+    }
+    unlitPipelineLayout->setShaderModule(fragShader, VulkanShaderStage::VK_SHADER_FRAGMENT);
+
+    unlitPipeline = unlitPipelineLayout->createPipeline();
+}
+
+void VulkanContext::drawUnlitPipeline(VkCommandBuffer cmd)
+{
+    // connected to draw image
+    VkRenderingAttachmentInfo colorAttachment = VulkanHeaplerLibrary::attachmentInfo(renderImage->getImageView(), nullptr, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    VkRenderingAttachmentInfo depthAttachment = VulkanHeaplerLibrary::depthAttachmentInfo(depthImage->getImageView(), VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
+
+    VkRenderingInfo renderInfo = VulkanHeaplerLibrary::renderingInfo(VkExtent2D{WIDTH, HEIGHT}, &colorAttachment, &depthAttachment);    
+    vkCmdBeginRendering(cmd, &renderInfo);
+
+    for (RenderObject& renderObj : frameRenderDatas)
+    {
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, unlitPipeline->getPipeline());
+
+        unlitPipelinePushConstantData.render_matrix = renderObj.transform; 
+        unlitPipelinePushConstantData.vertexBufferAddress = renderObj.vertexBuffer.getBufferAddress();
+
+        // set dynamic viewport and scissor
+        VkViewport viewport = {};
+        viewport.x = 0.0f;
+        viewport.y = 0.0f;
+        viewport.width = static_cast<float>(WIDTH);
+        viewport.height = static_cast<float>(HEIGHT);
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+
+        vkCmdSetViewport(cmd, 0, 1, &viewport);
+
+        VkRect2D scissor = {};
+        scissor.offset.x = 0;
+        scissor.offset.y = 0;
+        scissor.extent.width = WIDTH;
+        scissor.extent.height = HEIGHT;
+
+        vkCmdSetScissor(cmd, 0, 1, &scissor);
+
+        vkCmdBindIndexBuffer(cmd, renderObj.indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
+
+        vkCmdPushConstants(cmd, unlitPipelineLayout->getPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(UnlitPipelinePushConstantData), &unlitPipelinePushConstantData);
+
+        vkCmdDrawIndexed(cmd, renderObj.indexCount, 1, renderObj.firstIndex, 0, 0);
+    }
+
+    vkCmdEndRendering(cmd);
+}
+
 void VulkanContext::beginFrame()
 {
 };
@@ -238,8 +322,14 @@ void VulkanContext::drawFrame()
         drawComputePipeline(cmd);
     }
 
+    // test draw unlit pipeline
+    {
+        VulkanHeaplerLibrary::transitionImage(cmd, renderImage->getImage(), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+        drawUnlitPipeline(cmd);
+    }
+
     // transition the draw image and swapchain image into transfer layout
-    VulkanHeaplerLibrary::transitionImage(cmd, renderImage->getImage(), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+    VulkanHeaplerLibrary::transitionImage(cmd, renderImage->getImage(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
     VulkanHeaplerLibrary::transitionImage(cmd, swapChain->getImage(swapchainImageIndex), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
     // copy draw image to swapchain image
@@ -248,8 +338,10 @@ void VulkanContext::drawFrame()
         renderImage->getImage(), 
         swapChain->getImage(swapchainImageIndex), 
         VkExtent2D{WIDTH, HEIGHT}, 
-        VkExtent2D{WIDTH, HEIGHT});
+        VkExtent2D{WIDTH, HEIGHT}
+    );
 
+    VulkanHeaplerLibrary::transitionImage(cmd, swapChain->getImage(swapchainImageIndex), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
     // finish command buffer
     VK_CHECK(vkEndCommandBuffer(cmd));
@@ -290,7 +382,9 @@ void VulkanContext::drawFrame()
 };
 
 void VulkanContext::endFrame()
-{};
+{
+    frameRenderDatas.clear();
+};
 
 void VulkanContext::immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& func)
 {
@@ -318,11 +412,17 @@ void VulkanContext::immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& f
 
 void VulkanContext::submit(RenderData& renderData)
 {
+    RenderObject& renderObj = frameRenderDatas.emplace_back();
+
     size_t vertexBufferSize = renderData.vertices->size() * sizeof(Vertex);
     size_t indexBufferSize = renderData.indices->size() * sizeof(uint32_t);
 
-    VulkanBuffer vertexBuffer(vertexBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
-    VulkanBuffer indexBuffer(indexBufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+    renderObj.firstIndex = 0;
+    renderObj.indexCount = static_cast<uint32_t>(renderData.indices->size());
+    renderObj.transform = renderData.transform;
+
+    renderObj.vertexBuffer.init(vertexBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+    renderObj.indexBuffer.init(indexBufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
     
     VulkanBuffer stagingBuffer(vertexBufferSize + indexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
     // Copy vertex and index data to staging buffer
@@ -336,14 +436,14 @@ void VulkanContext::submit(RenderData& renderData)
         vertexCopy.dstOffset = 0;
         vertexCopy.size = vertexBufferSize;
 
-        vkCmdCopyBuffer(cmd, stagingBuffer.getBuffer(), vertexBuffer.getBuffer(), 1, &vertexCopy);
+        vkCmdCopyBuffer(cmd, stagingBuffer.getBuffer(), renderObj.vertexBuffer.getBuffer(), 1, &vertexCopy);
 
         VkBufferCopy indexCopy{};
         indexCopy.srcOffset = vertexBufferSize;
         indexCopy.dstOffset = 0;
         indexCopy.size = indexBufferSize;
 
-        vkCmdCopyBuffer(cmd, stagingBuffer.getBuffer(), indexBuffer.getBuffer(), 1, &indexCopy);
+        vkCmdCopyBuffer(cmd, stagingBuffer.getBuffer(), renderObj.indexBuffer.getBuffer(), 1, &indexCopy);
     }
     );
 }

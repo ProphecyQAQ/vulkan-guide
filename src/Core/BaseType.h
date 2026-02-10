@@ -12,7 +12,7 @@ struct Vertex
     float uv_u;
     glm::vec3 normal;
     float uv_v;
-    glm::vec3 color;
+    glm::vec4 color;
 };
 
 struct RenderData

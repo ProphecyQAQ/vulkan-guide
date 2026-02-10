@@ -44,7 +44,7 @@ public:
     void setBlendAdditive();
     void setBlendAlpha();
 
-    VulkanPipeline createPipeline();
+    VulkanPipeline* createPipeline();
     VulkanComputePipeline* createComputePipeline();
 public:
     VulkanDescriptorSetLayout* getDescriptorSetLayout() const { return descriptorSetLayout; }
@@ -72,6 +72,7 @@ private:
     VkPipelineMultisampleStateCreateInfo multisampleState;
     VkPipelineDepthStencilStateCreateInfo depthStencilState;
     VkPipelineRenderingCreateInfo renderInfo;
+    VkFormat colorAttachmentFormat;
 };
 
 class VulkanPipeline
@@ -79,6 +80,8 @@ class VulkanPipeline
 public:
     VulkanPipeline(VulkanDevice& device, VulkanLayout layout, VkPipeline pipeline);
     ~VulkanPipeline();
+
+    VkPipeline getPipeline() const { return pipeline; }
 private:
     VulkanDevice& device;
     VulkanLayout layout;
