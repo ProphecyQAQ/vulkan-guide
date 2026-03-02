@@ -25,7 +25,7 @@ Scene::Scene()
     indices = {0, 1, 2};
 
     // Add to scene
-    addObject(triangleObj.get(), glm::mat4(1.0f));
+    //addObject(triangleObj.get(), glm::mat4(1.0f));
 }
 
 Scene::~Scene()
@@ -37,7 +37,7 @@ void Scene::addObject(Object* object, glm::mat4 transform)
     objects[object] = transform;
 }
 
-void Scene::OnUpdate()
+void Scene::OnUpdate(float deltaTime)
 {
     RenderSystem* renderSystem = RenderSystem::get();
     for (auto& [obj, transform] : objects)
@@ -49,4 +49,7 @@ void Scene::OnUpdate()
         renderData.indices = &obj->getIndices();
         renderSystem->submit(renderData);
     }
+
+    // Update camera
+    camera.update(deltaTime);
 }
