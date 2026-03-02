@@ -1,6 +1,7 @@
 add_library(core
     Window.cpp
     Log.cpp
+    InputSystem.cpp
 )
 
 target_compile_options(core PRIVATE /utf-8)
