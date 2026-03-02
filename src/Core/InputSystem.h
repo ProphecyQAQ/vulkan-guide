@@ -75,6 +75,7 @@ public:
     bool mouseButtonReleased(MouseButton button) const;
 
     std::pair<int, int> mousePosition() const { return { mouseX, mouseY }; }
+    std::pair<int, int> mouseDeltaPosition() const { return { mouseDeltaX, mouseDeltaY}; }
     int mouseWheelDelta() const { return mouseWheel; }
     const std::string& textInput() const { return text; }
 

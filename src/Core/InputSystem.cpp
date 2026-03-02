@@ -12,6 +12,8 @@ void InputSystem::beginFrame()
     keysPrevious = keysCurrent;
     mouseButtonsPrevious = mouseButtonsCurrent;
     mouseWheel = 0;
+    mouseDeltaX = 0;
+    mouseDeltaY = 0;
     text.clear();
     quit = false;
 }

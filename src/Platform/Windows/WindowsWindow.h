@@ -2,6 +2,7 @@
 
 #include <Core/Window.h>
 #include <vector>
+#include <SDL.h>
 
 struct SDL_Window;
 
@@ -33,6 +34,8 @@ public:
     virtual void onUpdate() override;
 
     virtual bool isExit() override { return bQuit; }
+private:
+    void processSDLInput(SDL_Event& event);
 private:
     SDL_Window* window;
     WindowProps props;
