@@ -129,6 +129,7 @@ void WindowsWindow::processSDLInput(SDL_Event& event)
 void WindowsWindow::onUpdate()
 {
     InputSystem& input = InputSystem::get();
+    input.beginFrame();
 
     SDL_Event event;
     while (SDL_PollEvent(&event))

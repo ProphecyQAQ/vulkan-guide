@@ -30,7 +30,6 @@ static uint32_t buttonMask(MouseButton button)
 
 void InputSystem::processEvent(const InputEvent& event)
 {
-    beginFrame(); // Ensure we start a new frame for each event batch
     switch (event.type)
     {
     case InputEvent::Type::Quit:

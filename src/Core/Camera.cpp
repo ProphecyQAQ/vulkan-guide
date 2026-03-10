@@ -49,6 +49,7 @@ void Camera::processInput()
 
 void Camera::update(float deltaTime)
 {
+    processInput();
     glm::mat4 cameraRotation = getRotationMatrix();
     position += glm::vec3(cameraRotation * glm::vec4(velocity * deltaTime * 5.f, 0.f));
 }
