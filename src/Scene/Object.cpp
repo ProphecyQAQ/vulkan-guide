@@ -85,7 +85,7 @@ Object Object::loadGLTF(std::filesystem::path path)
             {
                 fastgltf::Accessor& normalAccessor = gltfAsset.accessors[normal->second];
                 fastgltf::iterateAccessorWithIndex<glm::vec3>(gltfAsset, normalAccessor, [&](glm::vec3 normal, uint32_t index){
-                    vertices.back().normal = normal;
+                    vertices[initialIndex + index].normal = normal;
                 });
             }
 
@@ -94,8 +94,8 @@ Object Object::loadGLTF(std::filesystem::path path)
             {
                 fastgltf::Accessor& uvAccessor = gltfAsset.accessors[uv->second];
                 fastgltf::iterateAccessorWithIndex<glm::vec2>(gltfAsset, uvAccessor, [&](glm::vec2 uv, uint32_t index){
-                    vertices.back().uv_u = uv.x;
-                    vertices.back().uv_v = uv.y;
+                    vertices[initialIndex + index].uv_u = uv.x;
+                    vertices[initialIndex + index].uv_v = uv.y;
                 });
             }
 
@@ -104,7 +104,7 @@ Object Object::loadGLTF(std::filesystem::path path)
             {
                 fastgltf::Accessor& colorAccessor = gltfAsset.accessors[color->second];
                 fastgltf::iterateAccessorWithIndex<glm::vec4>(gltfAsset, colorAccessor, [&](glm::vec4 color, uint32_t index){
-                    vertices.back().color = color;
+                    vertices[initialIndex + index].color = color;
                 });
             }
 
