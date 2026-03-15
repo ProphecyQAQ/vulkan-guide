@@ -78,13 +78,13 @@ private:
 class VulkanPipeline
 {
 public:
-    VulkanPipeline(VulkanDevice& device, VulkanLayout layout, VkPipeline pipeline);
+    VulkanPipeline(VulkanDevice& device, VulkanLayout& layout, VkPipeline pipeline);
     ~VulkanPipeline();
 
     VkPipeline getPipeline() const { return pipeline; }
 private:
     VulkanDevice& device;
-    VulkanLayout layout;
+    VulkanLayout& layout;
     VkPipeline pipeline;
 };
 
