@@ -26,6 +26,9 @@ Scene::Scene()
 
     // Add to scene
     //addObject(triangleObj.get(), glm::mat4(1.0f));
+
+    RenderSystem* renderSystem = RenderSystem::get();
+    renderSystem->setScene(this);
 }
 
 Scene::~Scene()
