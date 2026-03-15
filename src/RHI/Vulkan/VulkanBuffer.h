@@ -14,6 +14,15 @@ public:
     void* getMappedData() { return allocationInfo.pMappedData; }
     VkBuffer getBuffer() const { return buffer; }
     VkDeviceAddress getBufferAddress() const { return vertexBufferAddress; }
+
+    template<typename T>
+    void setData(const T* data)
+    {
+        assert(sizeof(T) == allocationInfo.size);
+
+        T* mappedData = (T*)getMappedData();
+        *mappedData = *data;
+    }
 private:
     VkBuffer buffer;
     VmaAllocation allocation;
