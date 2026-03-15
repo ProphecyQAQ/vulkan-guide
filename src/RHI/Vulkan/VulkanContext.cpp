@@ -241,6 +241,9 @@ void VulkanContext::initUnlitPipeline()
     }
     unlitPipelineLayout->setShaderModule(fragShader, VulkanShaderStage::VK_SHADER_FRAGMENT);
 
+    VulkanDescriptorSetLayout::Builder& descriptorSetLayoutBuilder = unlitPipelineLayout->getDescriptorSetLayoutBuilder();
+    descriptorSetLayoutBuilder.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1);
+
     unlitPipeline = unlitPipelineLayout->createPipeline();
 }
 
@@ -253,12 +256,35 @@ void VulkanContext::drawUnlitPipeline(VkCommandBuffer cmd)
     VkRenderingInfo renderInfo = VulkanHeaplerLibrary::renderingInfo(VkExtent2D{WIDTH, HEIGHT}, &colorAttachment, &depthAttachment);    
     vkCmdBeginRendering(cmd, &renderInfo);
 
+    // set scene data
+    RenderSystem* renderSystem = RenderSystem::get();
+    sceneData.view = renderSystem->getScene()->getViewMatrix();
+    sceneData.proj = glm::perspective(glm::radians(70.f),
+     (float)WIDTH / (float)HEIGHT, 10000.f, 0.1f);
+    sceneData.proj[1][1] *= -1;
+    sceneData.viewproj = sceneData.proj * sceneData.view;
+
+    SceneDataBuffer = new VulkanBuffer(
+        sizeof(SceneData),
+        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+        VMA_MEMORY_USAGE_CPU_TO_GPU
+    );
+    SceneDataBuffer->setData(&sceneData);
+
+    VkDescriptorSet descriptorSet = getCurrentFrameContext()->frameDescriptorPoolSet->allocateDescriptorSet(unlitPipelineLayout->getDescriptorSetLayout());
+
+    VulkanDescriptorSet::Writer sceneDataWriter;
+    sceneDataWriter.writeBuffer(0, SceneDataBuffer->getBuffer(), sizeof(SceneData), 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+    sceneDataWriter.update(*vulkanDevice, descriptorSet);
+
     for (RenderObject& renderObj : frameRenderDatas)
     {
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, unlitPipeline->getPipeline());
 
+        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, unlitPipelineLayout->getPipelineLayout(), 0, 1, &descriptorSet, 0, nullptr);
+
         unlitPipelinePushConstantData.render_matrix = renderObj.transform; 
-        unlitPipelinePushConstantData.vertexBufferAddress = renderObj.vertexBuffer.getBufferAddress();
+        unlitPipelinePushConstantData.vertexBufferAddress = renderObj.vertexBuffer->getBufferAddress();
 
         // set dynamic viewport and scissor
         VkViewport viewport = {};
@@ -279,7 +305,7 @@ void VulkanContext::drawUnlitPipeline(VkCommandBuffer cmd)
 
         vkCmdSetScissor(cmd, 0, 1, &scissor);
 
-        vkCmdBindIndexBuffer(cmd, renderObj.indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindIndexBuffer(cmd, renderObj.indexBuffer->getBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
         vkCmdPushConstants(cmd, unlitPipelineLayout->getPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(UnlitPipelinePushConstantData), &unlitPipelinePushConstantData);
 
@@ -383,6 +409,11 @@ void VulkanContext::drawFrame()
 
 void VulkanContext::endFrame()
 {
+    if (SceneDataBuffer)
+    {
+        delete SceneDataBuffer;
+        SceneDataBuffer = nullptr;
+    }
     frameRenderDatas.clear();
 };
 
@@ -421,8 +452,8 @@ void VulkanContext::submit(RenderData& renderData)
     renderObj.indexCount = static_cast<uint32_t>(renderData.indices->size());
     renderObj.transform = renderData.transform;
 
-    renderObj.vertexBuffer.init(vertexBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
-    renderObj.indexBuffer.init(indexBufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+    renderObj.vertexBuffer = new VulkanBuffer(vertexBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+    renderObj.indexBuffer = new VulkanBuffer(indexBufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
     
     VulkanBuffer stagingBuffer(vertexBufferSize + indexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
     // Copy vertex and index data to staging buffer
@@ -436,14 +467,14 @@ void VulkanContext::submit(RenderData& renderData)
         vertexCopy.dstOffset = 0;
         vertexCopy.size = vertexBufferSize;
 
-        vkCmdCopyBuffer(cmd, stagingBuffer.getBuffer(), renderObj.vertexBuffer.getBuffer(), 1, &vertexCopy);
+        vkCmdCopyBuffer(cmd, stagingBuffer.getBuffer(), renderObj.vertexBuffer->getBuffer(), 1, &vertexCopy);
 
         VkBufferCopy indexCopy{};
         indexCopy.srcOffset = vertexBufferSize;
         indexCopy.dstOffset = 0;
         indexCopy.size = indexBufferSize;
 
-        vkCmdCopyBuffer(cmd, stagingBuffer.getBuffer(), renderObj.indexBuffer.getBuffer(), 1, &indexCopy);
+        vkCmdCopyBuffer(cmd, stagingBuffer.getBuffer(), renderObj.indexBuffer->getBuffer(), 1, &indexCopy);
     }
     );
 }

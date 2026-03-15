@@ -13,8 +13,36 @@
 
 struct RenderObject
 {
-	VulkanBuffer vertexBuffer;
-	VulkanBuffer indexBuffer;
+	RenderObject() = default;
+	~RenderObject() 
+	{
+		if (vertexBuffer)
+		{
+			delete vertexBuffer;
+		}
+		if (indexBuffer)
+		{
+			delete indexBuffer;
+		}
+	}	
+
+	RenderObject(const RenderObject&) = delete;
+	RenderObject& operator=(const RenderObject&) = delete;
+
+	RenderObject(RenderObject&& other) noexcept
+	{
+		vertexBuffer = other.vertexBuffer;
+		indexBuffer = other.indexBuffer;
+		indexCount = other.indexCount;
+		firstIndex = other.firstIndex;
+		transform = other.transform;
+
+		other.vertexBuffer = nullptr;
+		other.indexBuffer = nullptr;
+	}
+
+	VulkanBuffer* vertexBuffer;
+	VulkanBuffer* indexBuffer;
 	uint32_t indexCount;
 	uint32_t firstIndex;
 	glm::mat4 transform;
@@ -113,4 +141,13 @@ private:
 	} unlitPipelinePushConstantData;
 	void initUnlitPipeline();
 	void drawUnlitPipeline(VkCommandBuffer cmd);
+
+	struct SceneData
+	{
+		glm::mat4 view;
+		glm::mat4 proj;
+		glm::mat4 viewproj;
+	} sceneData;
+
+	VulkanBuffer* SceneDataBuffer;
 };

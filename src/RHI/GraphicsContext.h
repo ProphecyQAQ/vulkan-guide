@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <Core/BaseType.h>
+#include <Scene/Scene.h>
 
 class Window;
 class GraphicsContext
@@ -28,8 +29,12 @@ public:
 
     void submit(RenderData& renderData);
     void onUpdate();
+
+    void setScene(Scene* scene) { this->scene = scene; }
+    Scene* getScene() { return scene; }
 private:
     std::unique_ptr<GraphicsContext> graphicsContext;
 
+    Scene *scene;
     static RenderSystem* renderSystem;
 };
