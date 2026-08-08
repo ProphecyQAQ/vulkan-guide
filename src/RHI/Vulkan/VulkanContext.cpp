@@ -175,7 +175,7 @@ void VulkanContext::initComputePipeline()
 {
     computePipelineLayout = new VulkanLayout(*vulkanDevice);
     computePipelineLayout->getDescriptorSetLayoutBuilder()
-        .addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1);
+        .addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1);
     computePipelineLayout->setPushConstantType(sizeof(ComputePipelinePushConstantData), VK_SHADER_STAGE_COMPUTE_BIT);
     VkShaderModule computeShader;
     if (!VulkanHeaplerLibrary::loadShaderModule("../../shaders/sky.comp.spv", vulkanDevice->getDevice(), &computeShader)) {
