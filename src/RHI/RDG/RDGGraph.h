@@ -14,6 +14,10 @@ public:
     std::string getName() const { return name; }
 
     RDGPass& addPass(std::string passName);
+
+    uint32_t createTexture(const std::string& name, const RDGTextureDesc& desc);
+    uint32_t createBuffer(const std::string& name, const RDGBufferDesc& desc);
+    uint32_t importTexture(const std::string& name, VulkanImage* image);
 private:
     std::string name;
 

@@ -1,5 +1,7 @@
 #pragma once
 #include <string>
+#include <variant>
+
 #include <Vulkan/VulkanPCH.h>
 #include <Vulkan/VulkanBuffer.h>
 #include <Vulkan/VulkanImage.h>
@@ -25,30 +27,28 @@ struct RDGTextureDesc
     bool mipmapped = false;
 };
 
+// Track for resource transitions
+// Necessary parameters for VkImageMemoryBarrier 
+struct RDGResourceState
+{
+    VkImageLayout layout = VK_IMAGE_LAYOUT_UNDEFINED;
+    VkAccessFlags2 accessMask = 0;
+    VkPipelineStageFlags2 stageMask = 0;
+};
+
 struct RDGResource
 {
     uint32_t handle = 0;
 
     std::string name;
     enum RDGResourceType type = RDGResourceType::NONE;
+    bool isExternal = false;
 
     // resource desc
-    union
-    {
-        RDGBufferDesc bufferDesc;
-        RDGTextureDesc textureDesc;
-    };
+    std::variant<RDGBufferDesc, RDGTextureDesc> desc;
 
     // runtime resource
+    RDGResourceState currentState;
     VulkanBuffer* buffer = nullptr;
     VulkanImage* image = nullptr;
-};
-
-// Track for resource transitions
-// Necessary parameters for VkImageMemoryBarrier 
-struct RDGResourceState
-{
-    VkImageLayout layout = VK_IMAGE_LAYOUT_UNDEFINED;
-    VkAccessFlags accessMask = 0;
-    VkPipelineStageFlags stageMask = 0;
 };
