@@ -11,6 +11,7 @@ public:
     VkImage getImage() { return image; }
     VkImageView getImageView() const { return imageView; }
     VkFormat getFormat() const { return format; }
+    VkExtent3D getExtent() const { return size;}
 private:
     VkImageCreateInfo imageCreateInfo();
     VkImageViewCreateInfo imageviewCreateInfo(VkImageAspectFlags aspectFlags);
