@@ -9,6 +9,8 @@ struct RDGPassAccess
 
     VkPipelineStageFlags2 stageMask = 0;
     VkAccessFlags2 accessMask = 0;
+    VkAttachmentLoadOp loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+    std::optional<uint32_t> slot;
 
     VkImageLayout layout = VK_IMAGE_LAYOUT_UNDEFINED;
     bool isWrite = false;
@@ -27,6 +29,22 @@ public:
     {
         return resourceAccesses;
     }
+
+    const std::vector<uint32_t>& GetPredecessors() const
+    {
+        return predecessors;
+    }
+
+    const std::vector<uint32_t>& GetSuccessors() const
+    {
+        return successors;
+    }
+
+    uint32_t getIndex() const { return index; }
+    void setIndex(uint32_t idx) { index = idx; }
+
+    bool isExecutionValid() const { return executionFunc != nullptr; }
+    void execute(VkCommandBuffer cmd, RDGPassContext& ctx) { executionFunc(cmd, ctx); }
 
 public:
     // resource access

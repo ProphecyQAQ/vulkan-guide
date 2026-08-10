@@ -51,4 +51,7 @@ struct RDGResource
     RDGResourceState currentState;
     VulkanBuffer* buffer = nullptr;
     VulkanImage* image = nullptr;
+
+    uint32_t firstUsePass = UINT32_MAX;
+    uint32_t lastUsePass  = 0;
 };

@@ -33,6 +33,8 @@ RDGPass& RDGPass::colorAttachment(uint32_t resourceHandle, uint32_t slot, VkAtta
     access.stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
     access.accessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
     access.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    access.loadOp = loadOp;
+    access.slot = slot;
     access.isWrite = true;
 
     resourceAccesses.push_back(access);
@@ -43,9 +45,10 @@ RDGPass& RDGPass::depthAttachment(uint32_t resourceHandle, VkAttachmentLoadOp lo
 {
     RDGPassAccess access;
     access.resourceHandle = resourceHandle;
-    access.stageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-    access.accessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+    access.stageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
+    access.accessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
     access.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    access.loadOp = loadOp;
     access.isWrite = true;
 
     resourceAccesses.push_back(access);
