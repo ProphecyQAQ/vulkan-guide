@@ -15,7 +15,7 @@ VulkanImage* RDGTransientResourcePool::acquireImage(const RDGTextureDesc& desc)
 
 VulkanBuffer* RDGTransientResourcePool::acquireBuffer(const RDGBufferDesc& desc)
 {
-    VulkanBuffer* buffer = new VulkanBuffer(desc.size, desc.usage, VMA_MEMORY_USAGE_GPU_ONLY);
+    VulkanBuffer* buffer = new VulkanBuffer(desc.size, desc.usage, desc.memUsage);
     buffers.push_back(buffer);
 
     return buffer;

@@ -15,24 +15,25 @@ enum RDGResourceType
 
 struct RDGBufferDesc
 {
-    VkDeviceSize size = 0;
+    VkDeviceSize size        = 0;
     VkBufferUsageFlags usage = VK_BUFFER_USAGE_FLAG_BITS_MAX_ENUM;
+    VmaMemoryUsage memUsage  = VMA_MEMORY_USAGE_UNKNOWN;
 }; 
 
 struct RDGTextureDesc
 {
-    VkFormat format = VK_FORMAT_UNDEFINED;
-    VkExtent3D extent = { 0, 0, 1};
+    VkFormat format         = VK_FORMAT_UNDEFINED;
+    VkExtent3D extent       = { 0, 0, 1};
     VkImageUsageFlags usage = VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM;
-    bool mipmapped = false;
+    bool mipmapped          = false;
 };
 
 // Track for resource transitions
 // Necessary parameters for VkImageMemoryBarrier 
 struct RDGResourceState
 {
-    VkImageLayout layout = VK_IMAGE_LAYOUT_UNDEFINED;
-    VkAccessFlags2 accessMask = 0;
+    VkImageLayout layout            = VK_IMAGE_LAYOUT_UNDEFINED;
+    VkAccessFlags2 accessMask       = 0;
     VkPipelineStageFlags2 stageMask = 0;
 };
 
