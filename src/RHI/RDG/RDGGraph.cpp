@@ -2,6 +2,10 @@
 
 #include <RDG/RDGGraph.h>
 #include <RDG/RDGResource.h>
+#include <RDG/RDGTransientResourcePool.h>
+
+#include <Vulkan/VulkanContext.h>
+#include <Vulkan/VulkanHelper.h>
 
 RDGPass& RDGGraph::addPass(std::string passName)
 {
@@ -174,4 +178,70 @@ void RDGGraph::compile()
             resources[passAccess.resourceHandle].lastUsePass = std::max(resources[passAccess.resourceHandle].lastUsePass, passId);
         }
     }
+
+    // allocate resource
+    for (RDGResource& res : resources)
+    {
+        if (res.isExternal) 
+        {
+            continue;
+        }
+
+        if (res.type == RDG_RESOURCE_TYPE_TEXTURE)
+        {
+            res.image = RDGTransientResourcePool::get().acquireImage(std::get<RDGTextureDesc>(res.desc));
+        }
+        else if (res.type == RDG_RESOURCE_TYPE_BUFFER)
+        {
+            res.buffer = RDGTransientResourcePool::get().acquireBuffer(std::get<RDGBufferDesc>(res.desc));
+        }
+        else 
+        {
+            LOG_ERROR("Error resouce type {} in RDG {}", res.name, name);
+        }
+    }
+}
+
+void RDGGraph::execute(VkCommandBuffer cmd)
+{
+    if (!isCompiled)
+    {
+        LOG_ERROR("Running uncompiled RDG {}", name);
+        return;
+    }
+
+    for (uint32_t passIdx : executeOrder)
+    {
+        RDGPass& pass = passes[passIdx];
+
+        for (const RDGPassAccess& resAccess : pass.GetResourceAccesses())
+        {
+            RDGResource& res = resources[resAccess.resourceHandle];
+            if (res.type != RDG_RESOURCE_TYPE_TEXTURE)
+            {
+                continue;
+            }
+            if (res.image == nullptr)
+            {
+                LOG_ERROR("RDG {0} resource {1} has not initialized", name, res.name);
+            }
+
+            if (res.currentState.layout != resAccess.layout)
+            {
+                VulkanHeaplerLibrary::transitionImage(cmd, 
+                    res.image->getImage(), 
+                    res.currentState.layout,
+                    resAccess.layout);
+                res.currentState.layout = resAccess.layout;
+            }
+        }
+
+        RDGPassContext ctx(VulkanContext::get()->getDevice(), resources);        
+        pass.execute(cmd, ctx);
+    }
+}
+
+void RDGGraph::clear()
+{
+    RDGTransientResourcePool::get().releaseAll();
 }

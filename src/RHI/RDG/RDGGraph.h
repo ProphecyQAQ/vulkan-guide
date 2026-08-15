@@ -1,17 +1,18 @@
 #pragma once
 #include <string>
-#include <vector>
 #include <set>
 #include <map>
 
 #include <RDG/RDGResource.h>
 #include <RDG/RDGPass.h>
 
+#include <Vulkan/VulkanPCH.h>
+
 class RDGGraph
 {
 public:
     RDGGraph(std::string name) : name(name) {};
-    ~RDGGraph() {};
+    ~RDGGraph() { clear(); };
 
     std::string getName() const { return name; }
 
@@ -25,7 +26,8 @@ public:
 
 public:
     void compile();
-
+    void execute(VkCommandBuffer cmd);
+    void clear();
 private:
     const std::string& getPassNameById(uint32_t idx) const;
 private:

@@ -79,6 +79,7 @@ public:
 	QueueFamilyIndices getQueueFamilyIndices() const { return queueFamilyIndices; }
 	VmaAllocator getAllocator() const { return allocator; }
 	VkDevice getVkDevice() const { return vulkanDevice->getDevice(); }
+	VulkanDevice* getDevice() const { return vulkanDevice; }
 private:
 	void initImmediateCtx();
 	void initFrameContext();

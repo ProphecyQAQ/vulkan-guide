@@ -1,5 +1,11 @@
 #include <RDG/RDGTransientResourcePool.h>
 
+RDGTransientResourcePool& RDGTransientResourcePool::get()
+{
+    static RDGTransientResourcePool instance;
+    return instance;
+}
+
 RDGTransientResourcePool::~RDGTransientResourcePool()
 {
     releaseAll();

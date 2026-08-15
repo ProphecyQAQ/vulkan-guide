@@ -8,6 +8,8 @@
 class RDGTransientResourcePool
 {
 public:
+    static RDGTransientResourcePool& get();
+
     RDGTransientResourcePool() = default;
     ~RDGTransientResourcePool();
     

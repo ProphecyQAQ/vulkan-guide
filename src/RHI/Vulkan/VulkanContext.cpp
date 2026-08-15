@@ -176,6 +176,21 @@ void VulkanContext::initFrameContext()
 
 void VulkanContext::initComputePipeline()
 {
+    computePipelineLayout = new VulkanLayout(*vulkanDevice);
+    computePipelineLayout->getDescriptorSetLayoutBuilder()
+        .addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1);
+    computePipelineLayout->setPushConstantType(sizeof(ComputePipelinePushConstantData), VK_SHADER_STAGE_COMPUTE_BIT);
+    VkShaderModule computeShader;
+    if (!VulkanHeaplerLibrary::loadShaderModule("../../shaders/sky.comp.spv", vulkanDevice->getDevice(), &computeShader)) {
+        LOG_ERROR("Error when building the compute shader \n");
+    }
+    computePipelineLayout->setShaderModule(computeShader, VulkanShaderStage::VK_SHADER_COMPUTE);
+
+    computePipeline = computePipelineLayout->createComputePipeline();
+}
+
+void VulkanContext::drawComputePipeline(VkCommandBuffer cmd)
+{
     RDGGraph computeGraph("ComputeDemo");
 
     RDGTextureDesc rtDesc;
@@ -189,50 +204,51 @@ void VulkanContext::initComputePipeline()
     .write(renderHandle, 
         VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, 
         VK_ACCESS_2_SHADER_WRITE_BIT, 
-        VK_IMAGE_LAYOUT_GENERAL);
+        VK_IMAGE_LAYOUT_GENERAL)
+    .setExecution([this, renderHandle](VkCommandBuffer cmd, RDGPassContext& ctx){
+        VulkanImage* renderRT = ctx.getImage(renderHandle);
+
+        // make a clear-color
+        VkClearColorValue clearValue;
+        float flash = std::abs(std::sin(frameCount/ 10.f));
+        clearValue = { {0.f, 0.f, flash, 1.f} };
+        
+        VkImageSubresourceRange clearRange = VulkanHeaplerLibrary::imageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT);
+        // clear image
+        vkCmdClearColorImage(cmd, renderRT->getImage(), VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1, &clearRange);
+
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, computePipeline->getPipeline());
+
+        // Allocate descriptor slot
+        VkDescriptorSet ds = getCurrentFrameContext()->frameDescriptorPoolSet->allocateDescriptorSet(computePipelineLayout->getDescriptorSetLayout());
+        VulkanDescriptorSet::Writer computeDescriptorSetWriter;
+        computeDescriptorSetWriter.writeImage(0, renderRT->getImageView(), VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+        computeDescriptorSetWriter.update(*vulkanDevice, ds);
+
+        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, computePipelineLayout->getPipelineLayout(), 0, 1, &ds, 0, nullptr);
+
+        ComputePipelinePushConstantData.data1 = glm::vec4(0.1, 0.2, 0.4 ,0.97);
+
+        vkCmdPushConstants(cmd, computePipelineLayout->getPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(ComputePipelinePushConstantData), &ComputePipelinePushConstantData);
+        // execute the compute pipeline dispatch. We are using 16x16 workgroup size so we need to divide by it
+        vkCmdDispatch(cmd, std::ceil(WIDTH / 16.0), std::ceil(HEIGHT / 16.0), 1);
+    });
+
+    computeGraph.addPass("DummyRead")
+    .read(renderHandle,
+        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+        VK_ACCESS_2_SHADER_READ_BIT,
+        VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL)
+    .setExecution([this, renderHandle](VkCommandBuffer cmd, RDGPassContext& ctx){
+        VulkanImage* renderRT = ctx.getImage(renderHandle);
+        
+        VkExtent2D dstSize = { renderImage->getExtent().width, renderImage->getExtent().height };
+        VkExtent2D srcSize = { renderRT->getExtent().width, renderRT->getExtent().height };
+        VulkanHeaplerLibrary::copyImageToImage(cmd, renderRT->getImage(), renderImage->getImage(), srcSize, dstSize);
+    });
     
     computeGraph.compile();
-
-    computePipelineLayout = new VulkanLayout(*vulkanDevice);
-    computePipelineLayout->getDescriptorSetLayoutBuilder()
-        .addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1);
-    computePipelineLayout->setPushConstantType(sizeof(ComputePipelinePushConstantData), VK_SHADER_STAGE_COMPUTE_BIT);
-    VkShaderModule computeShader;
-    if (!VulkanHeaplerLibrary::loadShaderModule("../../shaders/sky.comp.spv", vulkanDevice->getDevice(), &computeShader)) {
-        LOG_ERROR("Error when building the compute shader \n");
-    }
-    computePipelineLayout->setShaderModule(computeShader, VulkanShaderStage::VK_SHADER_COMPUTE);
-
-    computePipeline = computePipelineLayout->createComputePipeline();
-
-    computePipelineDescriptorSet = globalDescriptorPoolSet->allocateDescriptorSet(computePipelineLayout->getDescriptorSetLayout());
-
-    VulkanDescriptorSet::Writer computeDescriptorSetWriter;
-    computeDescriptorSetWriter.writeImage(0, renderImage->getImageView(), VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
-    computeDescriptorSetWriter.update(*vulkanDevice, computePipelineDescriptorSet);
-
-    //default sky parameters
-    ComputePipelinePushConstantData.data1 = glm::vec4(0.1, 0.2, 0.4 ,0.97);
-}
-
-void VulkanContext::drawComputePipeline(VkCommandBuffer cmd)
-{
-    // make a clear-color
-    VkClearColorValue clearValue;
-    float flash = std::abs(std::sin(frameCount/ 10.f));
-    clearValue = { {0.f, 0.f, flash, 1.f} };
-
-    VkImageSubresourceRange clearRange = VulkanHeaplerLibrary::imageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT);
-    // clear image
-    vkCmdClearColorImage(cmd, renderImage->getImage(), VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1, &clearRange);    
-
-    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, computePipeline->getPipeline());
-
-    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, computePipelineLayout->getPipelineLayout(), 0, 1, &computePipelineDescriptorSet, 0, nullptr);
-
-	vkCmdPushConstants(cmd, computePipelineLayout->getPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(ComputePipelinePushConstantData), &ComputePipelinePushConstantData);
-	// execute the compute pipeline dispatch. We are using 16x16 workgroup size so we need to divide by it
-	vkCmdDispatch(cmd, std::ceil(WIDTH / 16.0), std::ceil(HEIGHT / 16.0), 1);
+    computeGraph.execute(cmd);
 }
 
 void VulkanContext::initUnlitPipeline()
