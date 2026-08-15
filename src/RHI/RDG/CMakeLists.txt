@@ -1,14 +1,14 @@
-add_library(rdg
+add_library(RDG
     RDGPass.cpp
     RDGContext.cpp
     RDGResource.cpp
     RDGGraph.cpp
 )
 
-target_include_directories(rhi
+target_include_directories(RDG
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..
 )
 
-target_link_libraries(rhi
+target_link_libraries(RDG
     PUBLIC core VulkanRHI
 )

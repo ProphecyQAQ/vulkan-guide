@@ -108,6 +108,10 @@ Object Object::loadGLTF(std::filesystem::path path)
                 });
             }
 
+			for (decltype(primitive.attributes)::iterator it = primitive.attributes.begin(); it != primitive.attributes.end(); ++it) {
+                LOG_INFO("Attribute {}", it->first);
+			}
+
             // bounding box
             BoundingBox& boundingBox = obj.getBoundingBox();
             boundingBox.minPos = vertices[0].position;

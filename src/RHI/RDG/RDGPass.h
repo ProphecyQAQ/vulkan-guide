@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+
 #include <Vulkan/VulkanPCH.h>
 #include <RDG/RDGContext.h>
 
@@ -38,6 +39,10 @@ public:
     const std::vector<uint32_t>& GetSuccessors() const
     {
         return successors;
+    }
+    void addSuccessor(uint32_t successorId) 
+    {
+        successors.push_back(successorId);
     }
 
     uint32_t getIndex() const { return index; }

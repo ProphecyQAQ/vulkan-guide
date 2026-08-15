@@ -5,6 +5,9 @@
 #define VMA_IMPLEMENTATION
 #include <vk_mem_alloc.h>
 
+#include <RHI/RDG/RDGGraph.h>
+#include <RHI/RDG/RDGResource.h>
+
 // ------------------------------ FrameContext -----------------------
 FrameContext::FrameContext(VulkanDevice& device)
     : device(device)
@@ -173,6 +176,23 @@ void VulkanContext::initFrameContext()
 
 void VulkanContext::initComputePipeline()
 {
+    RDGGraph computeGraph("ComputeDemo");
+
+    RDGTextureDesc rtDesc;
+    rtDesc.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+    rtDesc.extent = {WIDTH, HEIGHT, 1};
+    rtDesc.usage = VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+
+    uint32_t renderHandle = computeGraph.createTexture("RenderImage", rtDesc);
+
+    computeGraph.addPass("ComputeSky")
+    .write(renderHandle, 
+        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, 
+        VK_ACCESS_2_SHADER_WRITE_BIT, 
+        VK_IMAGE_LAYOUT_GENERAL);
+    
+    computeGraph.compile();
+
     computePipelineLayout = new VulkanLayout(*vulkanDevice);
     computePipelineLayout->getDescriptorSetLayoutBuilder()
         .addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1);
