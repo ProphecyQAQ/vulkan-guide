@@ -3,6 +3,7 @@ add_library(RDG
     RDGContext.cpp
     RDGResource.cpp
     RDGGraph.cpp
+    RDGTransientResourcePool.cpp
 )
 
 target_include_directories(RDG
