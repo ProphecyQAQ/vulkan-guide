@@ -115,15 +115,15 @@ private:
 
 	std::vector<RenderObject> frameRenderDatas;
 	uint32_t frameCount = 0;
+
+	// pipeline library
+	VulkanPipelineLibrary* pipelineLibrary;
 private:
 	// blow is for test
 
 	// here is compute pipeline
 	void initComputePipeline();
 	void drawComputePipeline(VkCommandBuffer cmd);
-	VulkanLayout* computePipelineLayout;
-	VulkanComputePipeline* computePipeline;
-	VkDescriptorSet computePipelineDescriptorSet;
 	struct ComputePipelinePushConstantData 
 	{
 		glm::vec4 data1;
@@ -133,8 +133,6 @@ private:
 	} ComputePipelinePushConstantData;
 
 	// here is unlit pipeline
-	VulkanLayout* unlitPipelineLayout;
-	VulkanPipeline* unlitPipeline;
 	struct UnlitPipelinePushConstantData 
 	{
 		glm::mat4 render_matrix;

@@ -264,10 +264,10 @@ VulkanPipeline* VulkanLayout::createPipeline()
         assert(0);
     }
 
-    return new VulkanPipeline(device, *this, pipeline);
+    return new VulkanPipeline(device, this, pipeline, VK_GRAPHICS_PIPELINE);
 }
 
-VulkanComputePipeline* VulkanLayout::createComputePipeline()
+VulkanPipeline* VulkanLayout::createComputePipeline()
 {
     // build descriptor set layout
     std::vector<VkDescriptorSetLayout> descriptorSetLayouts;
@@ -301,29 +301,51 @@ VulkanComputePipeline* VulkanLayout::createComputePipeline()
         assert(0);
     }
 
-    return new VulkanComputePipeline(device, *this, pipeline);
+    return new VulkanPipeline(device, this, pipeline, VK_COMPUTE_PIPELINE);
 }
 // ----------------- VulkanLayout ------------------
 
 // ----------------- VulkanPipelin ------------------
-VulkanPipeline::VulkanPipeline(VulkanDevice& device, VulkanLayout& layout, VkPipeline pipeline)
-    : device(device), layout(layout), pipeline(pipeline)
+VulkanPipeline::VulkanPipeline(VulkanDevice& device, VulkanLayout* layout, VkPipeline pipeline, VulkanPipelineType type)
+    : type(type), device(device), layout(layout), pipeline(pipeline)
 {
 }
 
 VulkanPipeline::~VulkanPipeline()
 {
     vkDestroyPipeline(device.getDevice(), pipeline, nullptr);
+    delete layout;
 }
 // ----------------- VulkanPipelin ------------------
 
-// ----------------- VulkanComputePipeline ------------------
-VulkanComputePipeline::VulkanComputePipeline(VulkanDevice& device, VulkanLayout& layout, VkPipeline pipeline)
-    : device(device), layout(layout), pipeline(pipeline)
-{}
 
-VulkanComputePipeline::~VulkanComputePipeline()
+VulkanPipelineLibrary::~VulkanPipelineLibrary()
 {
-    vkDestroyPipeline(device.getDevice(), pipeline, nullptr);
+    for (auto [name, pipeline] : pipelineMap)
+    {
+        delete pipeline;
+        pipeline = nullptr;
+    }
 }
-// ----------------- VulkanComputePipeline ------------------
+
+bool VulkanPipelineLibrary::addPipelines(std::string name, VulkanPipeline* pipeline)
+{
+    if (pipelineMap.contains(name))
+    {
+        LOG_WARN("Try add deplicate pipeline {0}", name);
+        return false;
+    }
+    pipelineMap[name] = pipeline;
+    return true;
+}
+
+VulkanPipeline* VulkanPipelineLibrary::getPipelines(std::string name)
+{
+    if (pipelineMap.contains(name))
+    {
+        return pipelineMap[name];
+    }
+    LOG_ERROR("Try get non-exist pipeline {0}", name);
+    assert(0);
+    return nullptr;
+}

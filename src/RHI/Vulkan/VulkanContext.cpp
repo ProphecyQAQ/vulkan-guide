@@ -8,7 +8,7 @@
 #include <RHI/RDG/RDGGraph.h>
 #include <RHI/RDG/RDGResource.h>
 
-// ------------------------------ FrameContext -----------------------
+// ------------------------------ FrameContext ---------------------
 FrameContext::FrameContext(VulkanDevice& device)
     : device(device)
 {
@@ -70,6 +70,9 @@ VulkanContext::~VulkanContext()
 
     // delete global descriptor pool set
     delete globalDescriptorPoolSet;
+
+    // delete vulkan pipeline manager
+    delete pipelineLibrary;
 
     // delete vulkan device
     delete vulkanDevice;
@@ -148,6 +151,9 @@ void VulkanContext::init(Window* window)
         false
     );
 
+    // create pipeline manager
+    pipelineLibrary = new VulkanPipelineLibrary();
+
     // blow is for test
     {
         initComputePipeline();
@@ -176,17 +182,17 @@ void VulkanContext::initFrameContext()
 
 void VulkanContext::initComputePipeline()
 {
-    computePipelineLayout = new VulkanLayout(*vulkanDevice);
-    computePipelineLayout->getDescriptorSetLayoutBuilder()
+    VulkanLayout* layout = new VulkanLayout(*vulkanDevice);
+    layout->getDescriptorSetLayoutBuilder()
         .addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1);
-    computePipelineLayout->setPushConstantType(sizeof(ComputePipelinePushConstantData), VK_SHADER_STAGE_COMPUTE_BIT);
+    layout->setPushConstantType(sizeof(ComputePipelinePushConstantData), VK_SHADER_STAGE_COMPUTE_BIT);
     VkShaderModule computeShader;
     if (!VulkanHeaplerLibrary::loadShaderModule("../../shaders/sky.comp.spv", vulkanDevice->getDevice(), &computeShader)) {
         LOG_ERROR("Error when building the compute shader \n");
     }
-    computePipelineLayout->setShaderModule(computeShader, VulkanShaderStage::VK_SHADER_COMPUTE);
+    layout->setShaderModule(computeShader, VulkanShaderStage::VK_SHADER_COMPUTE);
 
-    computePipeline = computePipelineLayout->createComputePipeline();
+    pipelineLibrary->addPipelines(std::string("ComputeSky"), layout->createComputePipeline());
 }
 
 void VulkanContext::drawComputePipeline(VkCommandBuffer cmd)
@@ -199,6 +205,7 @@ void VulkanContext::drawComputePipeline(VkCommandBuffer cmd)
     rtDesc.usage = VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 
     uint32_t renderHandle = computeGraph.createTexture("RenderImage", rtDesc);
+
 
     computeGraph.addPass("ComputeSky")
     .write(renderHandle, 
@@ -217,31 +224,35 @@ void VulkanContext::drawComputePipeline(VkCommandBuffer cmd)
         // clear image
         vkCmdClearColorImage(cmd, renderRT->getImage(), VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1, &clearRange);
 
-        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, computePipeline->getPipeline());
+        VulkanPipeline* pipeline = pipelineLibrary->getPipelines("ComputeSky");
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline->getPipeline());
 
         // Allocate descriptor slot
-        VkDescriptorSet ds = getCurrentFrameContext()->frameDescriptorPoolSet->allocateDescriptorSet(computePipelineLayout->getDescriptorSetLayout());
+        VkDescriptorSet ds = getCurrentFrameContext()->frameDescriptorPoolSet->allocateDescriptorSet(pipeline->getDescriptorSetLayout());
         VulkanDescriptorSet::Writer computeDescriptorSetWriter;
         computeDescriptorSetWriter.writeImage(0, renderRT->getImageView(), VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
         computeDescriptorSetWriter.update(*vulkanDevice, ds);
 
-        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, computePipelineLayout->getPipelineLayout(), 0, 1, &ds, 0, nullptr);
+        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline->getPipelineLayout(), 0, 1, &ds, 0, nullptr);
 
         ComputePipelinePushConstantData.data1 = glm::vec4(0.1, 0.2, 0.4 ,0.97);
 
-        vkCmdPushConstants(cmd, computePipelineLayout->getPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(ComputePipelinePushConstantData), &ComputePipelinePushConstantData);
+        vkCmdPushConstants(cmd, pipeline->getPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(ComputePipelinePushConstantData), &ComputePipelinePushConstantData);
         // execute the compute pipeline dispatch. We are using 16x16 workgroup size so we need to divide by it
         vkCmdDispatch(cmd, std::ceil(WIDTH / 16.0), std::ceil(HEIGHT / 16.0), 1);
     });
 
     computeGraph.addPass("DummyRead")
     .read(renderHandle,
-        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-        VK_ACCESS_2_SHADER_READ_BIT,
-        VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL)
+        VK_PIPELINE_STAGE_2_BLIT_BIT,
+        VK_ACCESS_2_TRANSFER_READ_BIT,
+        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
     .setExecution([this, renderHandle](VkCommandBuffer cmd, RDGPassContext& ctx){
         VulkanImage* renderRT = ctx.getImage(renderHandle);
-        
+
+        VulkanHeaplerLibrary::transitionImage(cmd, renderImage->getImage(),
+        VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
         VkExtent2D dstSize = { renderImage->getExtent().width, renderImage->getExtent().height };
         VkExtent2D srcSize = { renderRT->getExtent().width, renderRT->getExtent().height };
         VulkanHeaplerLibrary::copyImageToImage(cmd, renderRT->getImage(), renderImage->getImage(), srcSize, dstSize);
@@ -253,7 +264,7 @@ void VulkanContext::drawComputePipeline(VkCommandBuffer cmd)
 
 void VulkanContext::initUnlitPipeline()
 {
-    unlitPipelineLayout = new VulkanLayout(*vulkanDevice);
+    VulkanLayout* unlitPipelineLayout = new VulkanLayout(*vulkanDevice);
 
     unlitPipelineLayout->setPushConstantType(sizeof(UnlitPipelinePushConstantData), VK_SHADER_STAGE_VERTEX_BIT);
     unlitPipelineLayout->setInputAssembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
@@ -280,7 +291,7 @@ void VulkanContext::initUnlitPipeline()
     VulkanDescriptorSetLayout::Builder& descriptorSetLayoutBuilder = unlitPipelineLayout->getDescriptorSetLayoutBuilder();
     descriptorSetLayoutBuilder.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1);
 
-    unlitPipeline = unlitPipelineLayout->createPipeline();
+    pipelineLibrary->addPipelines("UnlitPipeline", unlitPipelineLayout->createPipeline());
 }
 
 void VulkanContext::drawUnlitPipeline(VkCommandBuffer cmd)
@@ -307,7 +318,9 @@ void VulkanContext::drawUnlitPipeline(VkCommandBuffer cmd)
     );
     SceneDataBuffer->setData(&sceneData);
 
-    VkDescriptorSet descriptorSet = getCurrentFrameContext()->frameDescriptorPoolSet->allocateDescriptorSet(unlitPipelineLayout->getDescriptorSetLayout());
+    VulkanPipeline* pipeline = pipelineLibrary->getPipelines("UnlitPipeline");
+
+    VkDescriptorSet descriptorSet = getCurrentFrameContext()->frameDescriptorPoolSet->allocateDescriptorSet(pipeline->getDescriptorSetLayout());
 
     VulkanDescriptorSet::Writer sceneDataWriter;
     sceneDataWriter.writeBuffer(0, SceneDataBuffer->getBuffer(), sizeof(SceneData), 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
@@ -315,9 +328,9 @@ void VulkanContext::drawUnlitPipeline(VkCommandBuffer cmd)
 
     for (RenderObject& renderObj : frameRenderDatas)
     {
-        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, unlitPipeline->getPipeline());
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->getPipeline());
 
-        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, unlitPipelineLayout->getPipelineLayout(), 0, 1, &descriptorSet, 0, nullptr);
+        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->getPipelineLayout(), 0, 1, &descriptorSet, 0, nullptr);
 
         unlitPipelinePushConstantData.render_matrix = renderObj.transform; 
         unlitPipelinePushConstantData.vertexBufferAddress = renderObj.vertexBuffer->getBufferAddress();
@@ -343,7 +356,7 @@ void VulkanContext::drawUnlitPipeline(VkCommandBuffer cmd)
 
         vkCmdBindIndexBuffer(cmd, renderObj.indexBuffer->getBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
-        vkCmdPushConstants(cmd, unlitPipelineLayout->getPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(UnlitPipelinePushConstantData), &unlitPipelinePushConstantData);
+        vkCmdPushConstants(cmd, pipeline->getPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(UnlitPipelinePushConstantData), &unlitPipelinePushConstantData);
 
         vkCmdDrawIndexed(cmd, renderObj.indexCount, 1, renderObj.firstIndex, 0, 0);
     }

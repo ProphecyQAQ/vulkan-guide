@@ -4,7 +4,6 @@
 #include <Vulkan/VulkanDescriptorSet.h>
 
 class VulkanPipeline;
-class VulkanComputePipeline;
 
 enum VulkanShaderStage
 {
@@ -13,6 +12,12 @@ enum VulkanShaderStage
     VK_SHADER_COMPUTE = 2,
 
     VK_SHADER_STAGE_COUNT,
+};
+
+enum VulkanPipelineType
+{
+    VK_GRAPHICS_PIPELINE = 1,
+    VK_COMPUTE_PIPELINE = 2
 };
 
 class VulkanLayout
@@ -45,7 +50,7 @@ public:
     void setBlendAlpha();
 
     VulkanPipeline* createPipeline();
-    VulkanComputePipeline* createComputePipeline();
+    VulkanPipeline* createComputePipeline();
 public:
     VulkanDescriptorSetLayout* getDescriptorSetLayout() const { return descriptorSetLayout; }
     VkPipelineLayout getPipelineLayout() const { return pipelineLayout; }
@@ -78,25 +83,28 @@ private:
 class VulkanPipeline
 {
 public:
-    VulkanPipeline(VulkanDevice& device, VulkanLayout& layout, VkPipeline pipeline);
+    VulkanPipeline(VulkanDevice& device, VulkanLayout* layout, VkPipeline pipeline, VulkanPipelineType type);
     ~VulkanPipeline();
 
     VkPipeline getPipeline() const { return pipeline; }
+    VkPipelineLayout getPipelineLayout() const { return layout->getPipelineLayout(); }
+    VulkanDescriptorSetLayout* getDescriptorSetLayout() const { return layout->getDescriptorSetLayout(); }
 private:
+    VulkanPipelineType type;
+
     VulkanDevice& device;
-    VulkanLayout& layout;
+    VulkanLayout* layout;
     VkPipeline pipeline;
 };
 
-class VulkanComputePipeline
+class VulkanPipelineLibrary
 {
 public:
-    VulkanComputePipeline(VulkanDevice& device, VulkanLayout& layout, VkPipeline pipeline);
-    ~VulkanComputePipeline();
-
-    VkPipeline getPipeline() const { return pipeline; }
+    VulkanPipelineLibrary() = default;
+    ~VulkanPipelineLibrary();
+    
+    bool addPipelines(std::string name, VulkanPipeline* pipeline);
+    VulkanPipeline* getPipelines(std::string name);
 private:
-    VulkanDevice& device;
-    VulkanLayout& layout;
-    VkPipeline pipeline;
+    std::map<std::string, VulkanPipeline*> pipelineMap;
 };
